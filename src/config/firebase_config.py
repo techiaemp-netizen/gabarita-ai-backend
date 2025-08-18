@@ -37,14 +37,16 @@ class FirebaseConfig:
                     cred = credentials.Certificate(cred_dict)
                     firebase_admin.initialize_app(cred)
                     print("[FIREBASE] Firebase inicializado com sucesso!")
+                    
+                    # Inicializar serviços apenas se Firebase foi inicializado
+                    self.db = firestore.client()
+                    self.auth = auth
+                    print("[FIREBASE] Firestore e Auth conectados com sucesso!")
                 else:
                     print("[FIREBASE] Credenciais do Firebase não encontradas. Usando modo desenvolvimento.")
+                    self.db = None
+                    self.auth = None
                     return
-            
-            # Inicializar serviços
-            self.db = firestore.client()
-            self.auth = auth
-            print("[FIREBASE] Firestore e Auth conectados com sucesso!")
             
         except Exception as e:
             print(f"[FIREBASE] Erro ao inicializar Firebase: {e}")

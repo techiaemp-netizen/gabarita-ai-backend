@@ -11,12 +11,176 @@ from firebase_admin import firestore
 from datetime import datetime, timedelta
 import hashlib
 import hmac
+from config.firebase_config import firebase_config
 
 payments_bp = Blueprint('payments', __name__)
-db = firestore.client()
+
+def get_db():
+    """Retorna a instância do Firestore se disponível"""
+    return firebase_config.get_db()
 
 # Configurar Mercado Pago
 sdk = mercadopago.SDK(os.getenv('MERCADO_PAGO_ACCESS_TOKEN'))
+
+# Definir planos globalmente
+PLANOS_DISPONIVEIS = {
+    'gratuito': {
+        'id': 'gratuito',
+        'name': 'Gratuito/Trial',
+        'price': 0.00,
+        'duration': 0,  # Ilimitada
+        'features': [
+            '3 questões limitadas'
+        ],
+        'resources': {
+            'questoes_limitadas': True,
+            'simulados': False,
+            'relatorios': False,
+            'ranking': False,
+            'suporte': False,
+            'macetes': False,
+            'modo_foco': False,
+            'redacao': False
+        },
+        'popular': False
+    },
+    'promo': {
+        'id': 'promo',
+        'name': 'Promo (Semanal)',
+        'price': 5.90,
+        'duration': 7,
+        'features': [
+            'Questões ilimitadas',
+            'Simulados',
+            'Relatórios',
+            'Ranking',
+            'Suporte'
+        ],
+        'resources': {
+            'questoes_limitadas': False,
+            'simulados': True,
+            'relatorios': True,
+            'ranking': True,
+            'suporte': True,
+            'macetes': False,
+            'modo_foco': False,
+            'redacao': False
+        },
+        'popular': False
+    },
+    'lite': {
+        'id': 'lite',
+        'name': 'Lite (Mensal)',
+        'price': 14.90,
+        'duration': 30,
+        'features': [
+            'Questões ilimitadas',
+            'Simulados',
+            'Relatórios',
+            'Ranking',
+            'Suporte'
+        ],
+        'resources': {
+            'questoes_limitadas': False,
+            'simulados': True,
+            'relatorios': True,
+            'ranking': True,
+            'suporte': True,
+            'macetes': False,
+            'modo_foco': False,
+            'redacao': False
+        },
+        'popular': False
+    },
+    'premium': {
+        'id': 'premium',
+        'name': 'Premium (Bimestral)',
+        'price': 20.00,
+        'duration': 60,
+        'features': [
+            'Questões ilimitadas',
+            'Simulados',
+            'Relatórios',
+            'Ranking',
+            'Suporte'
+        ],
+        'resources': {
+            'questoes_limitadas': False,
+            'simulados': True,
+            'relatorios': True,
+            'ranking': True,
+            'suporte': True,
+            'macetes': False,
+            'modo_foco': False,
+            'redacao': False
+        },
+        'popular': False
+    },
+    'premium_plus': {
+        'id': 'premium_plus',
+        'name': 'Premium Plus',
+        'price': 40.00,
+        'duration': 60,
+        'features': [
+            'Todos os recursos anteriores',
+            'Macetes',
+            'Modo foco'
+        ],
+        'resources': {
+            'questoes_limitadas': False,
+            'simulados': True,
+            'relatorios': True,
+            'ranking': True,
+            'suporte': True,
+            'macetes': True,
+            'modo_foco': True,
+            'redacao': False
+        },
+        'popular': False
+    },
+    'black_cnu': {
+        'id': 'black_cnu',
+        'name': 'Black CNU ⭐',
+        'price': 70.00,
+        'duration': 365,  # Até 5 de dezembro de 2025
+        'features': [
+            'Todos os recursos',
+            'Macetes',
+            'Modo foco',
+            'Redação',
+            'Chat tira-dúvidas',
+            'Pontos centrais',
+            'Outras explorações'
+        ],
+        'resources': {
+            'questoes_limitadas': False,
+            'simulados': True,
+            'relatorios': True,
+            'ranking': True,
+            'suporte': True,
+            'macetes': True,
+            'modo_foco': True,
+            'redacao': True,
+            'chat_tira_duvidas': True,
+            'pontos_centrais': True,
+            'outras_exploracoes': True
+        },
+        'popular': True,
+        'special_duration': 'Até 5 de dezembro de 2025'
+    }
+}
+
+@payments_bp.route('/api/plans', methods=['GET'])
+def listar_planos():
+    """Listar todos os planos disponíveis"""
+    try:
+        return jsonify({
+            'success': True,
+            'plans': list(PLANOS_DISPONIVEIS.values())
+        })
+    except Exception as e:
+        print(f"[PAGAMENTO] Erro ao criar pagamento: {str(e)}")
+        return jsonify({'error': f'Erro ao criar pagamento: {str(e)}'}), 500
 
 @payments_bp.route('/api/pagamentos/criar', methods=['POST'])
 def criar_pagamento():
@@ -27,22 +191,20 @@ def criar_pagamento():
         user_id = data.get('userId')
         user_email = data.get('userEmail')
         
-        # Definir planos
-        planos = {
-            'mensal': {'title': 'Plano Mensal', 'price': 29.90, 'duration': 30},
-            'trimestral': {'title': 'Plano Trimestral', 'price': 79.90, 'duration': 90},
-            'anual': {'title': 'Plano Anual', 'price': 299.90, 'duration': 365}
-        }
-        
-        if plano not in planos:
+        # Usar planos globais
+        if plano not in PLANOS_DISPONIVEIS:
             return jsonify({'error': 'Plano inválido'}), 400
             
-        plano_info = planos[plano]
+        plano_info = PLANOS_DISPONIVEIS[plano]
+        
+        # Planos gratuitos não precisam de pagamento
+        if plano_info['price'] == 0:
+            return jsonify({'error': 'Plano gratuito não requer pagamento'}), 400
         
         # Criar preferência no Mercado Pago
         preference_data = {
             "items": [{
-                "title": plano_info['title'],
+                "title": plano_info['name'],
                 "quantity": 1,
                 "unit_price": plano_info['price']
             }],
@@ -54,7 +216,6 @@ def criar_pagamento():
                 "failure": f"{os.getenv('FRONTEND_URL')}/retorno?status=failure",
                 "pending": f"{os.getenv('FRONTEND_URL')}/retorno?status=pending"
             },
-            "auto_return": "approved",
             "notification_url": f"{os.getenv('BACKEND_URL')}/api/pagamentos/webhook",
             "external_reference": f"{user_id}_{plano}_{datetime.now().timestamp()}"
         }
@@ -77,7 +238,9 @@ def criar_pagamento():
                 'externalReference': preference_data['external_reference']
             }
             
-            db.collection('transactions').add(transaction_data)
+            db = get_db()
+            if db:
+                db.collection('transactions').add(transaction_data)
             
             return jsonify({
                 'preferenceId': preference['id'],
@@ -225,6 +388,9 @@ def ativar_plano_usuario(transaction_data):
         data_expiracao = datetime.now() + timedelta(days=duracao)
         
         # Atualizar usuário no Firebase
+        db = get_db()
+        if not db:
+            return False
         user_ref = db.collection('users').document(user_id)
         user_ref.update({
             'planoAtivo': plano,

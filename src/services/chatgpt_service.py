@@ -18,7 +18,7 @@ class ChatGPTService:
             api_key=os.getenv('OPENAI_API_KEY'),
             base_url=os.getenv('OPENAI_API_BASE', 'https://api.openai.com/v1')
         )
-        self.model = "gpt-4"
+        self.model = "gpt-4"  # Usando GPT-4 com 250k tokens mensais
         self.temperature = 0.7
         self.max_tokens = 1500
     

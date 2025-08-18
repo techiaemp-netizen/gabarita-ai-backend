@@ -2117,3 +2117,313 @@ def _calcular_estatisticas(questoes):
         'evolucao_semanal': []  # Implementar se necessário
     }
 
+# ========== RECURSOS AVANÇADOS DE QUESTÕES ==========
+
+@questoes_bp.route('/chat-duvidas', methods=['POST'])
+def chat_duvidas():
+    """Endpoint para chat de dúvidas sobre questões"""
+    try:
+        data = request.get_json()
+        questao_id = data.get('questao_id')
+        usuario_id = data.get('usuario_id')
+        mensagem = data.get('mensagem')
+        
+        if not all([questao_id, usuario_id, mensagem]):
+            return jsonify({
+                'success': False,
+                'error': 'questao_id, usuario_id e mensagem são obrigatórios'
+            }), 400
+        
+        # Gerar thread_id único
+        thread_id = str(uuid.uuid4())
+        
+        # Buscar informações da questão para contexto
+        db = firebase_config.get_firestore_client()
+        questao_ref = db.collection('questoes_pool').document(questao_id)
+        questao_doc = questao_ref.get()
+        
+        if not questao_doc.exists:
+            return jsonify({
+                'success': False,
+                'error': 'Questão não encontrada'
+            }), 404
+        
+        questao_data = questao_doc.to_dict()
+        
+        # Preparar contexto para o ChatGPT
+        contexto = f"""Questão: {questao_data.get('questao', '')}
+        Tema: {questao_data.get('tema', '')}
+        Alternativas: {questao_data.get('alternativas', [])}
+        Gabarito: {questao_data.get('gabarito', '')}
+        Explicação: {questao_data.get('explicacao', '')}
+        
+        Dúvida do usuário: {mensagem}"""
+        
+        # Gerar resposta usando ChatGPT
+        prompt = f"""Você é um tutor especializado em concursos públicos. 
+        Com base na questão e explicação fornecidas, responda à dúvida do usuário de forma clara e didática.
+        
+        {contexto}
+        
+        Forneça uma resposta educativa que esclareça a dúvida, mantendo foco no aprendizado."""
+        
+        resposta = chatgpt_service.gerar_resposta(prompt)
+        
+        # Salvar conversa no Firebase
+        conversa_data = {
+            'thread_id': thread_id,
+            'questao_id': questao_id,
+            'usuario_id': usuario_id,
+            'mensagem_usuario': mensagem,
+            'resposta_sistema': resposta,
+            'timestamp': datetime.now(),
+            'questao_referencia': {
+                'questao': questao_data.get('questao', ''),
+                'tema': questao_data.get('tema', '')
+            }
+        }
+        
+        db.collection('chat_duvidas').add(conversa_data)
+        
+        return jsonify({
+            'success': True,
+            'thread_id': thread_id,
+            'resposta': resposta,
+            'questao_referencia': {
+                'id': questao_id,
+                'tema': questao_data.get('tema', ''),
+                'questao': questao_data.get('questao', '')[:100] + '...'
+            }
+        })
+        
+    except Exception as e:
+        print(f"Erro no chat de dúvidas: {e}")
+        return jsonify({
+            'success': False,
+            'error': 'Erro interno do servidor'
+        }), 500
+
+@questoes_bp.route('/macetes/<questao_id>', methods=['GET'])
+def obter_macetes(questao_id):
+    """Endpoint para obter macetes de uma questão"""
+    try:
+        # Buscar questão no Firebase
+        db = firebase_config.get_firestore_client()
+        questao_ref = db.collection('questoes_pool').document(questao_id)
+        questao_doc = questao_ref.get()
+        
+        if not questao_doc.exists:
+            return jsonify({
+                'success': False,
+                'error': 'Questão não encontrada'
+            }), 404
+        
+        questao_data = questao_doc.to_dict()
+        
+        # Gerar macetes usando ChatGPT
+        prompt = f"""Com base na seguinte questão de concurso público, forneça 3-5 macetes práticos e dicas de memorização:
+        
+        Questão: {questao_data.get('questao', '')}
+        Tema: {questao_data.get('tema', '')}
+        Gabarito: {questao_data.get('gabarito', '')}
+        Explicação: {questao_data.get('explicacao', '')}
+        
+        Forneça macetes no formato de lista, cada um com:
+        - Título do macete
+        - Descrição clara e prática
+        - Como aplicar na resolução
+        
+        Responda em formato JSON com array de objetos contendo: titulo, descricao, aplicacao"""
+        
+        resposta = chatgpt_service.gerar_resposta(prompt)
+        
+        # Tentar parsear JSON, se falhar, criar estrutura padrão
+        try:
+            import json
+            macetes = json.loads(resposta)
+        except:
+            # Fallback para estrutura padrão
+            macetes = [
+                {
+                    'titulo': 'Análise por Eliminação',
+                    'descricao': 'Elimine alternativas claramente incorretas primeiro',
+                    'aplicacao': 'Identifique palavras-chave que tornam alternativas incorretas'
+                },
+                {
+                    'titulo': 'Foco no Tema Principal',
+                    'descricao': f'Esta questão aborda: {questao_data.get("tema", "conceitos fundamentais")}',
+                    'aplicacao': 'Relembre os pontos centrais deste tema antes de responder'
+                },
+                {
+                    'titulo': 'Atenção ao Gabarito',
+                    'descricao': f'A resposta correta é: {questao_data.get("gabarito", "")}',
+                    'aplicacao': 'Verifique se sua escolha está alinhada com a fundamentação teórica'
+                }
+            ]
+        
+        return jsonify({
+            'success': True,
+            'questao_id': questao_id,
+            'macetes': macetes
+        })
+        
+    except Exception as e:
+        print(f"Erro ao obter macetes: {e}")
+        return jsonify({
+            'success': False,
+            'error': 'Erro interno do servidor'
+        }), 500
+
+@questoes_bp.route('/pontos-centrais/<questao_id>', methods=['GET'])
+def obter_pontos_centrais(questao_id):
+    """Endpoint para obter pontos centrais de uma questão"""
+    try:
+        # Buscar questão no Firebase
+        db = firebase_config.get_firestore_client()
+        questao_ref = db.collection('questoes_pool').document(questao_id)
+        questao_doc = questao_ref.get()
+        
+        if not questao_doc.exists:
+            return jsonify({
+                'success': False,
+                'error': 'Questão não encontrada'
+            }), 404
+        
+        questao_data = questao_doc.to_dict()
+        
+        # Gerar pontos centrais usando ChatGPT
+        prompt = f"""Analise a seguinte questão de concurso público e identifique os pontos centrais e tópicos essenciais:
+        
+        Questão: {questao_data.get('questao', '')}
+        Tema: {questao_data.get('tema', '')}
+        Gabarito: {questao_data.get('gabarito', '')}
+        Explicação: {questao_data.get('explicacao', '')}
+        
+        Identifique 4-6 pontos centrais que são essenciais para compreender e resolver esta questão.
+        
+        Responda em formato JSON com array de objetos contendo: topico, descricao, importancia"""
+        
+        resposta = chatgpt_service.gerar_resposta(prompt)
+        
+        # Tentar parsear JSON, se falhar, criar estrutura padrão
+        try:
+            import json
+            pontos_centrais = json.loads(resposta)
+        except:
+            # Fallback para estrutura padrão
+            pontos_centrais = [
+                {
+                    'topico': 'Conceito Fundamental',
+                    'descricao': f'Compreensão do tema: {questao_data.get("tema", "")}',
+                    'importancia': 'Base teórica necessária para resolução'
+                },
+                {
+                    'topico': 'Interpretação do Enunciado',
+                    'descricao': 'Análise cuidadosa do que está sendo perguntado',
+                    'importancia': 'Evita erros por má interpretação'
+                },
+                {
+                    'topico': 'Aplicação Prática',
+                    'descricao': 'Como aplicar o conhecimento teórico na questão',
+                    'importancia': 'Ponte entre teoria e prática'
+                },
+                {
+                    'topico': 'Diferenciação de Alternativas',
+                    'descricao': 'Identificar nuances entre as opções apresentadas',
+                    'importancia': 'Precisão na escolha da resposta correta'
+                }
+            ]
+        
+        return jsonify({
+            'success': True,
+            'questao_id': questao_id,
+            'pontos_centrais': pontos_centrais
+        })
+        
+    except Exception as e:
+        print(f"Erro ao obter pontos centrais: {e}")
+        return jsonify({
+            'success': False,
+            'error': 'Erro interno do servidor'
+        }), 500
+
+@questoes_bp.route('/outras-exploracoes/<questao_id>', methods=['GET'])
+def obter_outras_exploracoes(questao_id):
+    """Endpoint para obter outras explorações e leituras sugeridas"""
+    try:
+        # Buscar questão no Firebase
+        db = firebase_config.get_firestore_client()
+        questao_ref = db.collection('questoes_pool').document(questao_id)
+        questao_doc = questao_ref.get()
+        
+        if not questao_doc.exists:
+            return jsonify({
+                'success': False,
+                'error': 'Questão não encontrada'
+            }), 404
+        
+        questao_data = questao_doc.to_dict()
+        
+        # Gerar sugestões de exploração usando ChatGPT
+        prompt = f"""Com base na seguinte questão de concurso público, sugira materiais complementares e explorações adicionais:
+        
+        Questão: {questao_data.get('questao', '')}
+        Tema: {questao_data.get('tema', '')}
+        
+        Sugira 4-6 recursos para aprofundamento, incluindo:
+        - Legislações relacionadas
+        - Doutrinas importantes
+        - Jurisprudências relevantes
+        - Materiais de estudo complementares
+        
+        Responda em formato JSON com array de objetos contendo: titulo, tipo, url (pode ser genérica), descricao"""
+        
+        resposta = chatgpt_service.gerar_resposta(prompt)
+        
+        # Tentar parsear JSON, se falhar, criar estrutura padrão
+        try:
+            import json
+            exploracoes = json.loads(resposta)
+        except:
+            # Fallback para estrutura padrão baseado no tema
+            tema = questao_data.get('tema', '')
+            exploracoes = [
+                {
+                    'titulo': f'Legislação sobre {tema}',
+                    'tipo': 'Legislação',
+                    'url': 'https://www.planalto.gov.br/ccivil_03/leis/',
+                    'descricao': f'Consulte as leis específicas relacionadas a {tema}'
+                },
+                {
+                    'titulo': f'Doutrina - {tema}',
+                    'tipo': 'Doutrina',
+                    'url': 'https://www.conjur.com.br/',
+                    'descricao': f'Artigos doutrinários sobre {tema}'
+                },
+                {
+                    'titulo': f'Jurisprudência - {tema}',
+                    'tipo': 'Jurisprudência',
+                    'url': 'https://www.stf.jus.br/',
+                    'descricao': f'Decisões judiciais relevantes sobre {tema}'
+                },
+                {
+                    'titulo': f'Material Complementar - {tema}',
+                    'tipo': 'Estudo',
+                    'url': 'https://www.gov.br/',
+                    'descricao': f'Materiais oficiais e complementares sobre {tema}'
+                }
+            ]
+        
+        return jsonify({
+            'success': True,
+            'questao_id': questao_id,
+            'exploracoes': exploracoes
+        })
+        
+    except Exception as e:
+        print(f"Erro ao obter outras explorações: {e}")
+        return jsonify({
+            'success': False,
+            'error': 'Erro interno do servidor'
+        }), 500
+

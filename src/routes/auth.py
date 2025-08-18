@@ -2,8 +2,8 @@
 Rotas de autenticação para o Gabarita.AI
 """
 from flask import Blueprint, request, jsonify
-from firebase_admin import auth, firestore
-from src.config.firebase_config import firebase_config
+from firebase_admin import auth as firebase_auth, firestore
+from config.firebase_config import firebase_config
 import uuid
 from datetime import datetime
 
@@ -25,7 +25,7 @@ def login():
         if firebase_config.is_connected():
             try:
                 # Tentar autenticar com Firebase
-                user = auth.get_user_by_email(email)
+                user = firebase_auth.get_user_by_email(email)
                 usuario_data = _get_usuario_firestore(user.uid)
                 
                 if usuario_data:
@@ -37,12 +37,15 @@ def login():
                 else:
                     return jsonify({'erro': 'Usuário não encontrado'}), 404
                     
-            except auth.UserNotFoundError:
+            except firebase_auth.UserNotFoundError:
                 return jsonify({'erro': 'Credenciais inválidas'}), 401
             except Exception as e:
                 print(f"Erro na autenticação Firebase: {e}")
                 # Fallback para autenticação simulada
                 pass
+        
+        # Modo de desenvolvimento - autenticação simulada
+        print(f"Login em modo desenvolvimento para: {email}")
         
         # Autenticação simulada para desenvolvimento
         usuario_simulado = {
@@ -97,7 +100,7 @@ def cadastro():
         if firebase_config.is_connected():
             try:
                 # Tentar criar usuário no Firebase Auth
-                user = auth.create_user(
+                user = firebase_auth.create_user(
                     email=email,
                     password=senha,
                     display_name=nome
@@ -129,7 +132,7 @@ def cadastro():
                     'token': user.uid
                 })
                 
-            except auth.EmailAlreadyExistsError:
+            except firebase_auth.EmailAlreadyExistsError:
                 return jsonify({'erro': 'E-mail já cadastrado'}), 409
             except Exception as e:
                 print(f"Erro no cadastro Firebase: {e}")
@@ -176,7 +179,7 @@ def verificar_token():
         if firebase_config.is_connected():
             try:
                 # Verificar token com Firebase Auth
-                decoded_token = auth.verify_id_token(token)
+                decoded_token = firebase_auth.verify_id_token(token)
                 uid = decoded_token['uid']
                 
                 # Buscar dados do usuário
@@ -193,7 +196,7 @@ def verificar_token():
                 else:
                     return jsonify({'erro': 'Usuário não encontrado'}), 404
                     
-            except auth.InvalidIdTokenError:
+            except firebase_auth.InvalidIdTokenError:
                 return jsonify({'erro': 'Token inválido'}), 401
             except Exception as e:
                 print(f"Erro na verificação do token: {e}")
@@ -234,7 +237,7 @@ def google_auth():
         if firebase_config.is_connected():
             try:
                 # Verificar o token do Google
-                decoded_token = auth.verify_id_token(id_token)
+                decoded_token = firebase_auth.verify_id_token(id_token)
                 uid = decoded_token['uid']
                 email = decoded_token.get('email')
                 nome = decoded_token.get('name', '')
@@ -276,7 +279,7 @@ def google_auth():
                         'isNewUser': True
                     })
                     
-            except auth.InvalidIdTokenError:
+            except firebase_auth.InvalidIdTokenError:
                 return jsonify({'erro': 'Token do Google inválido'}), 401
             except Exception as e:
                 print(f"Erro na autenticação Google: {e}")
@@ -329,7 +332,7 @@ def complete_profile():
         if firebase_config.is_connected():
             try:
                 # Verificar se o token é válido
-                decoded_token = auth.verify_id_token(token)
+                decoded_token = firebase_auth.verify_id_token(token)
                 uid = decoded_token['uid']
                 
                 # Atualizar perfil no Firestore
@@ -349,7 +352,7 @@ def complete_profile():
                     'mensagem': 'Perfil completado com sucesso'
                 })
                 
-            except auth.InvalidIdTokenError:
+            except firebase_auth.InvalidIdTokenError:
                 return jsonify({'erro': 'Token inválido'}), 401
             except Exception as e:
                 print(f"Erro ao completar perfil: {e}")
@@ -394,6 +397,11 @@ def logout():
 def _get_usuario_firestore(uid):
     """Busca dados do usuário no Firestore"""
     try:
+        if not firebase_config.is_connected():
+            # Modo de desenvolvimento - retornar dados simulados
+            print(f"Buscando usuário em modo desenvolvimento: {uid}")
+            return None
+            
         db = firebase_config.get_db()
         doc = db.collection('usuarios').document(uid).get()
         

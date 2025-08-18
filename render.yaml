@@ -10,5 +10,46 @@ services:
         value: 3.11.0
       - key: PORT
         value: 10000
+      # OpenAI Configuration
+      - key: OPENAI_API_KEY
+        sync: false  # This will need to be set manually in Render dashboard
+      - key: OPENAI_API_BASE
+        value: https://api.openai.com/v1
+      # Perplexity Configuration
+      - key: PERPLEXITY_API_KEY
+        sync: false  # This will need to be set manually in Render dashboard
+      # Firebase Configuration
+      - key: FIREBASE_PROJECT_ID
+        sync: false  # This will need to be set manually in Render dashboard
+      - key: FIREBASE_PRIVATE_KEY_ID
+        sync: false  # This will need to be set manually in Render dashboard
+      - key: FIREBASE_PRIVATE_KEY
+        sync: false  # This will need to be set manually in Render dashboard
+      - key: FIREBASE_CLIENT_EMAIL
+        sync: false  # This will need to be set manually in Render dashboard
+      - key: FIREBASE_CLIENT_ID
+        sync: false  # This will need to be set manually in Render dashboard
+      - key: FIREBASE_AUTH_URI
+        value: https://accounts.google.com/o/oauth2/auth
+      - key: FIREBASE_TOKEN_URI
+        value: https://oauth2.googleapis.com/token
+      # MercadoPago Configuration
+      - key: MERCADO_PAGO_ACCESS_TOKEN
+        sync: false  # This will need to be set manually in Render dashboard
+      - key: MERCADO_PAGO_WEBHOOK_SECRET
+        sync: false  # This will need to be set manually in Render dashboard
+      # Application Configuration
+      - key: SECRET_KEY
+        value: gabarita_ai_secret_key_2025
+      - key: DEBUG
+        value: False
+      # URLs Configuration
+      - key: FRONTEND_URL
+        value: https://gabaritai.app.br
+      - key: BACKEND_URL
+        sync: false  # This will be set automatically by Render
+      # CORS Configuration
+      - key: CORS_ORIGINS
+        value: https://gabaritai.app.br,https://gabarita-ai-frontend-in51yjzgf-rafaels-projects-dbcb8980.vercel.app
     healthCheckPath: /health
     autoDeploy: false
