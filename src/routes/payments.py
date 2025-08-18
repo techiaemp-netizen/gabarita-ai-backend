@@ -11,7 +11,7 @@ from firebase_admin import firestore
 from datetime import datetime, timedelta
 import hashlib
 import hmac
-from config.firebase_config import firebase_config
+from ..config.firebase_config import firebase_config
 
 payments_bp = Blueprint('payments', __name__)
 

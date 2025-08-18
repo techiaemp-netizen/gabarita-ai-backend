@@ -1,5 +1,5 @@
 from flask import Blueprint, request, jsonify
-from services.plano_service import plano_service
+from ..services.plano_service import plano_service
 from firebase_admin import auth
 from datetime import datetime
 

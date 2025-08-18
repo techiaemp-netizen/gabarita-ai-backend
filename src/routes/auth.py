@@ -3,7 +3,7 @@ Rotas de autenticação para o Gabarita.AI
 """
 from flask import Blueprint, request, jsonify
 from firebase_admin import auth as firebase_auth, firestore
-from config.firebase_config import firebase_config
+from ..config.firebase_config import firebase_config
 import uuid
 from datetime import datetime
 

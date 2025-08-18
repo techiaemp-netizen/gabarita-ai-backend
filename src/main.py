@@ -2,14 +2,14 @@ from flask import Flask, jsonify, request
 from flask_cors import CORS
 import os
 from datetime import datetime
-from services.chatgpt_service import chatgpt_service
-from routes.questoes import CONTEUDOS_EDITAL
-from routes.signup import signup_bp
-from routes.questoes import questoes_bp
-from routes.payments import payments_bp
-from routes.auth import auth_bp
-from routes.planos import planos_bp
-from routes.opcoes import opcoes_bp
+from .services.chatgpt_service import chatgpt_service
+from .routes.questoes import CONTEUDOS_EDITAL
+from .routes.signup import signup_bp
+from .routes.questoes import questoes_bp
+from .routes.payments import payments_bp
+from .routes.auth import auth_bp
+from .routes.planos import planos_bp
+from .routes.opcoes import opcoes_bp
 
 app = Flask(__name__)
 CORS(app)
@@ -26,7 +26,7 @@ app.register_blueprint(opcoes_bp, url_prefix='/api')
 @app.route('/api/plans', methods=['GET'])
 def alias_plans():
     """Alias para /api/planos - compatibilidade com frontend"""
-    from routes.payments import listar_planos
+    from .routes.payments import listar_planos
     return listar_planos()
 
 @app.route('/api/user/profile', methods=['GET'])
@@ -280,18 +280,18 @@ def api_news():
         ]
         
         return jsonify({
-             'success': True,
-             'noticias': noticias,
-             'total': len(noticias),
-             'ultima_atualizacao': datetime.now().isoformat()
-         })
-         
-     except Exception as e:
-         print(f"Erro na API de notícias: {e}")
-         return jsonify({
-             'success': False,
-             'error': 'Erro interno do servidor'
-         }), 500
+            'success': True,
+            'noticias': noticias,
+            'total': len(noticias),
+            'ultima_atualizacao': datetime.now().isoformat()
+        })
+        
+    except Exception as e:
+        print(f"Erro na API de notícias: {e}")
+        return jsonify({
+            'success': False,
+            'error': 'Erro interno do servidor'
+        }), 500
 
 @app.route('/api/simulados/submit', methods=['POST'])
 def api_simulados_submit():
@@ -604,7 +604,7 @@ def obter_explicacao_perplexity():
         })
 
 @app.route('/')
-def health_check():
+def root():
     return jsonify({
         'status': 'ok',
         'message': 'Gabarita AI Backend is running',

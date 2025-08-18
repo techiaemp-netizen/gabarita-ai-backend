@@ -1,7 +1,7 @@
 from flask import Blueprint, request, jsonify
 from werkzeug.security import generate_password_hash, check_password_hash
 from firebase_admin import firestore
-from config.firebase_config import firebase_config
+from ..config.firebase_config import firebase_config
 import re
 
 signup_bp = Blueprint('signup', __name__)
