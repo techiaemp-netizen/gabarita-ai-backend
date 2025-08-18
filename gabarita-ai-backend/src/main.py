@@ -22,6 +22,23 @@ app.register_blueprint(jogos_bp, url_prefix='/api/jogos')
 app.register_blueprint(news_bp, url_prefix='/api')
 app.register_blueprint(opcoes_bp, url_prefix='/api')
 
+@app.route('/', methods=['GET'])
+def root():
+    """Rota raiz da API"""
+    return jsonify({
+        'message': 'Gabarita.AI Backend API',
+        'version': '1.0.0',
+        'status': 'online',
+        'endpoints': {
+            'health': '/health',
+            'auth': '/api/auth/*',
+            'questoes': '/api/questoes/*',
+            'planos': '/api/planos',
+            'jogos': '/api/jogos/*',
+            'opcoes': '/api/opcoes/*'
+        }
+    })
+
 @app.route('/health', methods=['GET'])
 def health_check():
     return jsonify({
