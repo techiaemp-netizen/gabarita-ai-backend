@@ -1,5 +1,5 @@
 from flask import Blueprint, jsonify
-from src.routes.questoes import CONTEUDOS_EDITAL
+from routes.questoes import CONTEUDOS_EDITAL
 
 opcoes_bp = Blueprint('opcoes', __name__)
 
