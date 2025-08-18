@@ -4,12 +4,10 @@ services:
     env: python
     plan: free
     buildCommand: pip install -r requirements.txt
-    startCommand: python run.py
+    startCommand: gunicorn -w 2 -k gthread -t 120 -b 0.0.0.0:$PORT run:app
     envVars:
       - key: PYTHON_VERSION
         value: 3.11.0
-      - key: PORT
-        value: 10000
       # OpenAI Configuration
       - key: OPENAI_API_KEY
         sync: false  # This will need to be set manually in Render dashboard
