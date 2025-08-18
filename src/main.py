@@ -425,6 +425,33 @@ def health_check():
         'version': '1.0.0'
     })
 
+@app.route('/api/test-opcoes', methods=['GET'])
+def test_opcoes():
+    """Endpoint de teste para verificar se as opções estão funcionando"""
+    try:
+        from .routes.questoes import CONTEUDOS_EDITAL
+        
+        # Extrair cargos e seus blocos do mapeamento CONTEUDOS_EDITAL
+        opcoes = {}
+        for cargo, blocos_data in CONTEUDOS_EDITAL.items():
+            if isinstance(blocos_data, dict):
+                opcoes[cargo] = list(blocos_data.keys())
+            else:
+                opcoes[cargo] = blocos_data
+        
+        return jsonify({
+            'sucesso': True,
+            'total_cargos': len(opcoes),
+            'primeiros_cargos': list(opcoes.keys())[:5],
+            'dados': opcoes
+        }), 200
+        
+    except Exception as e:
+        return jsonify({
+            'sucesso': False,
+            'erro': str(e)
+        }), 500
+
 # Rota de login removida - agora está no auth_bp
 
 @app.route('/api/questoes/gerar', methods=['POST'])
