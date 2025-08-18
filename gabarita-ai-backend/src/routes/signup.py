@@ -30,7 +30,7 @@ def signup():
         data = request.get_json()
         
         # Validar dados obrigatorios
-        required_fields = ['nomeCompleto', 'cpf', 'email', 'senha']
+        required_fields = ['nomeCompleto', 'cpf', 'email', 'senha', 'cargo', 'bloco']
         for field in required_fields:
             if not data.get(field):
                 return jsonify({
@@ -42,6 +42,8 @@ def signup():
         cpf = data['cpf'].strip()
         email = data['email'].strip().lower()
         senha = data['senha']
+        cargo = data['cargo'].strip()
+        bloco = data['bloco'].strip()
         
         # Validacoes
         if not validate_email(email):
@@ -92,6 +94,8 @@ def signup():
             'cpf': cpf,
             'email': email,
             'password_hash': password_hash,
+            'cargo': cargo,
+            'bloco': bloco,
             'freeQuestionsRemaining': 3,
             'createdAt': firestore.SERVER_TIMESTAMP,
             'totalAnswered': 0,

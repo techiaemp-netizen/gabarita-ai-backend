@@ -8,15 +8,19 @@ from .routes.signup import signup_bp
 from .routes.questoes import questoes_bp
 from .routes.planos import planos_bp
 from .routes.jogos import jogos_bp
+from .routes.news import news_bp
+from .routes.opcoes import opcoes_bp
 
 app = Flask(__name__)
-CORS(app)
+CORS(app, origins=['http://localhost:3000', 'http://localhost:5173', 'https://j6h5i7c0x703.manus.space'], supports_credentials=True)
 
 # Registrar blueprints
 app.register_blueprint(signup_bp, url_prefix='/api/auth')
 app.register_blueprint(questoes_bp, url_prefix='/api/questoes')
 app.register_blueprint(planos_bp, url_prefix='/api')
 app.register_blueprint(jogos_bp, url_prefix='/api/jogos')
+app.register_blueprint(news_bp, url_prefix='/api')
+app.register_blueprint(opcoes_bp, url_prefix='/api')
 
 @app.route('/health', methods=['GET'])
 def health_check():
@@ -217,6 +221,106 @@ def obter_explicacao_perplexity():
                 'Doutrina especializada'
             ]
         })
+
+@app.route('/api/simulados/submit', methods=['POST'])
+def submit_simulado():
+    """Submete um simulado e calcula o score"""
+    try:
+        data = request.get_json()
+        usuario_id = data.get('usuario_id')
+        respostas = data.get('respostas', [])
+        
+        if not usuario_id or not respostas:
+            return jsonify({'erro': 'Dados obrigatórios não fornecidos'}), 400
+        
+        # Calcular estatísticas
+        total_questoes = len(respostas)
+        acertos = sum(1 for r in respostas if r.get('resposta_usuario') == r.get('gabarito'))
+        erros = total_questoes - acertos
+        taxa_acerto = (acertos / total_questoes * 100) if total_questoes > 0 else 0
+        tempo_total = sum(r.get('tempo_resposta', 0) for r in respostas)
+        tempo_medio = tempo_total / total_questoes if total_questoes > 0 else 0
+        
+        # Calcular score (0-1000 pontos)
+        score = int((acertos / total_questoes * 1000)) if total_questoes > 0 else 0
+        
+        # Resultado do simulado
+        resultado = {
+            'simulado_id': f'sim-{usuario_id}-{datetime.now().strftime("%Y%m%d%H%M%S")}',
+            'usuario_id': usuario_id,
+            'data_realizacao': datetime.now().isoformat(),
+            'total_questoes': total_questoes,
+            'acertos': acertos,
+            'erros': erros,
+            'taxa_acerto': round(taxa_acerto, 2),
+            'tempo_total': tempo_total,
+            'tempo_medio': round(tempo_medio, 2),
+            'score': score,
+            'status': 'concluido'
+        }
+        
+        return jsonify({
+            'success': True,
+            'resultado': resultado,
+            'message': f'Simulado concluído! Você acertou {acertos} de {total_questoes} questões ({taxa_acerto:.1f}%)'
+        })
+        
+    except Exception as e:
+        print(f"Erro ao processar simulado: {e}")
+        return jsonify({'erro': 'Erro interno do servidor'}), 500
+
+@app.route('/api/performance', methods=['GET'])
+def get_performance():
+    """Retorna dados de performance do usuário"""
+    try:
+        # Dados simulados de performance
+        performance_data = {
+            'total_questoes': 150,
+            'acertos': 120,
+            'erros': 30,
+            'taxa_acerto': 80.0,
+            'tempo_medio': 45.5,
+            'sequencia_atual': 5,
+            'melhor_sequencia': 12,
+            'nivel_atual': 'Intermediário',
+            'pontos_totais': 2450,
+            'progresso_semanal': [
+                {'dia': 'Seg', 'questoes': 15, 'acertos': 12},
+                {'dia': 'Ter', 'questoes': 20, 'acertos': 16},
+                {'dia': 'Qua', 'questoes': 18, 'acertos': 15},
+                {'dia': 'Qui', 'questoes': 22, 'acertos': 18},
+                {'dia': 'Sex', 'questoes': 25, 'acertos': 20}
+            ],
+            'desempenho_por_materia': [
+                {'materia': 'SUS', 'total': 50, 'acertos': 42, 'taxa': 84.0},
+                {'materia': 'Enfermagem', 'total': 60, 'acertos': 45, 'taxa': 75.0},
+                {'materia': 'Saúde Pública', 'total': 40, 'acertos': 33, 'taxa': 82.5}
+            ]
+        }
+        return jsonify(performance_data)
+    except Exception as e:
+        print(f"Erro ao obter performance: {e}")
+        return jsonify({'erro': 'Erro interno do servidor'}), 500
+
+@app.route('/api/ranking', methods=['GET'])
+def get_ranking():
+    """Retorna o ranking de usuários"""
+    try:
+        ranking_data = {
+            'ranking': [
+                {'posicao': 1, 'nome': 'Usuário***', 'score': 2850, 'acertos': 95.2},
+                {'posicao': 2, 'nome': 'Estudante***', 'score': 2720, 'acertos': 92.8},
+                {'posicao': 3, 'nome': 'Concurseiro***', 'score': 2650, 'acertos': 90.5},
+                {'posicao': 4, 'nome': 'Você', 'score': 2450, 'acertos': 80.0, 'destaque': True},
+                {'posicao': 5, 'nome': 'Candidato***', 'score': 2380, 'acertos': 78.2}
+            ],
+            'sua_posicao': 4,
+            'total_usuarios': 1247
+        }
+        return jsonify(ranking_data)
+    except Exception as e:
+        print(f"Erro ao obter ranking: {e}")
+        return jsonify({'erro': 'Erro interno do servidor'}), 500
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))

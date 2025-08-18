@@ -75,17 +75,23 @@ def responder_questao():
             except Exception as e:
                 print(f"Erro ao atualizar Firestore: {e}")
         
-        # Gerar explicação usando ChatGPT
+        # Gerar explicação usando Perplexity para questões erradas
         explicacao = "Explicação não disponível no momento."
-        try:
-            prompt_explicacao = f"""
-            Explique de forma didática por que a alternativa {gabarito_simulado} é a correta 
-            para uma questão sobre o tema relacionado ao CNU 2025.
-            Seja claro, objetivo e educativo.
-            """
-            explicacao = chatgpt_service.gerar_explicacao(prompt_explicacao)
-        except Exception as e:
-            print(f"Erro ao gerar explicação: {e}")
+        if not acertou:
+            try:
+                prompt_explicacao = f"""
+                Explique de forma didática por que a alternativa {gabarito_simulado} é a correta 
+                para uma questão sobre o tema relacionado ao CNU 2025.
+                Seja claro, objetivo e educativo.
+                """
+                explicacao = perplexity_service.gerar_explicacao(prompt_explicacao)
+            except Exception as e:
+                print(f"Erro ao gerar explicação Perplexity: {e}")
+                # Fallback para ChatGPT se Perplexity falhar
+                try:
+                    explicacao = chatgpt_service.gerar_explicacao(prompt_explicacao)
+                except Exception as e2:
+                    print(f"Erro ao gerar explicação ChatGPT: {e2}")
         
         return jsonify({
             'sucesso': True,
@@ -99,6 +105,168 @@ def responder_questao():
         
     except Exception as e:
         print(f"Erro ao processar resposta: {e}")
+        return jsonify({
+            'erro': 'Erro interno do servidor',
+            'detalhes': str(e)
+        }), 500
+
+@questoes_bp.route('/chat-duvidas', methods=['POST'])
+def chat_tira_duvidas():
+    """
+    Chat tira-dúvidas focado na questão (Plano Black)
+    """
+    try:
+        data = request.get_json()
+        
+        required_fields = ['questao_id', 'usuario_id', 'pergunta']
+        for field in required_fields:
+            if field not in data:
+                return jsonify({
+                    'erro': f'Campo obrigatório ausente: {field}'
+                }), 400
+        
+        questao_id = data['questao_id']
+        usuario_id = data['usuario_id']
+        pergunta = data['pergunta']
+        
+        # Verificar se usuário tem plano Black
+        # TODO: Implementar verificação real do plano
+        
+        prompt_chat = f"""
+        Você é um tutor especializado em concursos públicos, especificamente para o CNU 2025.
+        O usuário tem uma dúvida sobre uma questão específica (ID: {questao_id}).
+        
+        Pergunta do usuário: {pergunta}
+        
+        Responda de forma clara, didática e focada na dúvida específica.
+        Seja objetivo e educativo.
+        """
+        
+        try:
+            resposta = perplexity_service.gerar_explicacao(prompt_chat)
+        except Exception as e:
+            print(f"Erro Perplexity: {e}")
+            resposta = chatgpt_service.gerar_explicacao(prompt_chat)
+        
+        return jsonify({
+            'sucesso': True,
+            'resposta': resposta,
+            'questao_id': questao_id
+        })
+        
+    except Exception as e:
+        print(f"Erro no chat tira-dúvidas: {e}")
+        return jsonify({
+            'erro': 'Erro interno do servidor',
+            'detalhes': str(e)
+        }), 500
+
+@questoes_bp.route('/macetes/<questao_id>', methods=['GET'])
+def obter_macetes(questao_id):
+    """
+    Obter macetes da questão (Plano Black)
+    """
+    try:
+        prompt_macetes = f"""
+        Forneça 3-5 macetes práticos e eficazes para resolver questões similares 
+        à questão ID {questao_id} do CNU 2025.
+        
+        Formato:
+        • Macete 1: [descrição]
+        • Macete 2: [descrição]
+        • Macete 3: [descrição]
+        
+        Seja prático e direto ao ponto.
+        """
+        
+        try:
+            macetes = perplexity_service.gerar_explicacao(prompt_macetes)
+        except Exception as e:
+            print(f"Erro Perplexity: {e}")
+            macetes = chatgpt_service.gerar_explicacao(prompt_macetes)
+        
+        return jsonify({
+            'sucesso': True,
+            'macetes': macetes,
+            'questao_id': questao_id
+        })
+        
+    except Exception as e:
+        print(f"Erro ao obter macetes: {e}")
+        return jsonify({
+            'erro': 'Erro interno do servidor',
+            'detalhes': str(e)
+        }), 500
+
+@questoes_bp.route('/pontos-centrais/<questao_id>', methods=['GET'])
+def obter_pontos_centrais(questao_id):
+    """
+    Obter pontos centrais da questão (Plano Black)
+    """
+    try:
+        prompt_pontos = f"""
+        Identifique os 3-4 pontos centrais mais importantes para resolver 
+        a questão ID {questao_id} do CNU 2025.
+        
+        Formato:
+        1. [Ponto central 1]
+        2. [Ponto central 2]
+        3. [Ponto central 3]
+        
+        Foque nos conceitos-chave que o candidato deve dominar.
+        """
+        
+        try:
+            pontos = perplexity_service.gerar_explicacao(prompt_pontos)
+        except Exception as e:
+            print(f"Erro Perplexity: {e}")
+            pontos = chatgpt_service.gerar_explicacao(prompt_pontos)
+        
+        return jsonify({
+            'sucesso': True,
+            'pontos_centrais': pontos,
+            'questao_id': questao_id
+        })
+        
+    except Exception as e:
+        print(f"Erro ao obter pontos centrais: {e}")
+        return jsonify({
+            'erro': 'Erro interno do servidor',
+            'detalhes': str(e)
+        }), 500
+
+@questoes_bp.route('/outras-exploracoes/<questao_id>', methods=['GET'])
+def obter_outras_exploracoes(questao_id):
+    """
+    Obter outras explorações pela banca (Plano Black)
+    """
+    try:
+        prompt_exploracoes = f"""
+        Analise como a banca do CNU 2025 poderia explorar o mesmo tema 
+        da questão ID {questao_id} de outras formas.
+        
+        Forneça:
+        • 3-4 variações possíveis do tema
+        • Diferentes abordagens que a banca costuma usar
+        • Pegadinhas comuns relacionadas ao assunto
+        
+        Seja estratégico e focado na preparação do candidato.
+        """
+        
+        try:
+            exploracoes = perplexity_service.gerar_explicacao(prompt_exploracoes)
+        except Exception as e:
+            print(f"Erro Perplexity: {e}")
+            exploracoes = chatgpt_service.gerar_explicacao(prompt_exploracoes)
+        
+        return jsonify({
+            'sucesso': True,
+            'outras_exploracoes': exploracoes,
+            'questao_id': questao_id
+        })
+        
+    except Exception as e:
+        print(f"Erro ao obter outras explorações: {e}")
         return jsonify({
             'erro': 'Erro interno do servidor',
             'detalhes': str(e)

@@ -6,39 +6,46 @@ from datetime import datetime
 planos_bp = Blueprint('planos', __name__)
 
 @planos_bp.route('/planos', methods=['GET'])
+@planos_bp.route('/plans', methods=['GET'])  # Alias em inglês
 def listar_planos():
     """Lista todos os planos disponíveis"""
     try:
         planos = [
             {
-                'id': 'trial',
-                'nome': 'Trial Gratuito',
+                'id': 'gratuito',
+                'nome': 'Gratuito/Trial',
                 'preco': 0.00,
-                'periodo': 'grátis',
-                'descricao': 'Experimente gratuitamente',
+                'periodo': 'ilimitado',
+                'descricao': 'Experimente gratuitamente com recursos básicos',
                 'recursos': [
-                    '3 questões gratuitas',
-                    'Correção automática',
-                    'Feedback básico',
-                    'Sem compromisso',
-                    'Teste agora mesmo'
+                    '✅ 3 questões limitadas',
+                    '❌ Simulados',
+                    '❌ Relatórios',
+                    '❌ Ranking',
+                    '❌ Suporte',
+                    '❌ Macetes',
+                    '❌ Modo foco',
+                    '❌ Redação'
                 ],
                 'popular': False,
                 'duracao': 'ilimitado',
-                'tipo': 'trial'
+                'tipo': 'gratuito'
             },
             {
                 'id': 'promo',
-                'nome': 'Semanal',
+                'nome': 'Promo (Semanal)',
                 'preco': 5.90,
                 'periodo': '7 dias',
-                'descricao': 'Acesso básico por 1 semana',
+                'descricao': 'Acesso completo por 1 semana com ótimo custo-benefício',
                 'recursos': [
-                    'Questões ilimitadas',
-                    'Simulados personalizados',
-                    'Relatórios detalhados',
-                    'Ranking nacional',
-                    'Suporte prioritário'
+                    '✅ Questões ilimitadas',
+                    '✅ Simulados',
+                    '✅ Relatórios',
+                    '✅ Ranking',
+                    '✅ Suporte',
+                    '❌ Macetes',
+                    '❌ Modo foco',
+                    '❌ Redação'
                 ],
                 'popular': False,
                 'duracao': '7 dias',
@@ -46,82 +53,84 @@ def listar_planos():
             },
             {
                 'id': 'lite',
-                'nome': 'Mensal',
+                'nome': 'Lite (Mensal)',
                 'preco': 14.90,
                 'periodo': '30 dias',
-                'descricao': 'Acesso completo por 1 mês',
+                'descricao': 'Acesso completo por 1 mês - ideal para estudos regulares',
                 'recursos': [
-                    'Questões ilimitadas',
-                    'Simulados personalizados',
-                    'Relatórios detalhados',
-                    'Ranking nacional',
-                    'Suporte prioritário'
+                    '✅ Questões ilimitadas',
+                    '✅ Simulados',
+                    '✅ Relatórios',
+                    '✅ Ranking',
+                    '✅ Suporte',
+                    '❌ Macetes',
+                    '❌ Modo foco',
+                    '❌ Redação'
                 ],
-                'popular': True,
+                'popular': False,
                 'duracao': '30 dias',
                 'tipo': 'lite'
             },
             {
                 'id': 'premium',
-                'nome': 'Bimestral',
+                'nome': 'Premium (Bimestral)',
                 'preco': 20.00,
                 'periodo': '60 dias',
-                'descricao': 'Acesso completo por 2 meses',
+                'descricao': 'Acesso completo por 2 meses - melhor valor',
                 'recursos': [
-                    'Questões ilimitadas',
-                    'Simulados personalizados',
-                    'Relatórios detalhados',
-                    'Ranking nacional',
-                    'Suporte prioritário'
+                    '✅ Questões ilimitadas',
+                    '✅ Simulados',
+                    '✅ Relatórios',
+                    '✅ Ranking',
+                    '✅ Suporte',
+                    '❌ Macetes',
+                    '❌ Modo foco',
+                    '❌ Redação'
                 ],
-                'popular': False,
+                'popular': True,
                 'duracao': '60 dias',
                 'tipo': 'premium'
             },
             {
                 'id': 'premium_plus',
-                'nome': 'Premium',
+                'nome': 'Premium Plus',
                 'preco': 40.00,
-                'periodo': '30 dias',
-                'descricao': 'Com recursos adicionais, respostas de perguntas, botão de macete e modo foco',
+                'periodo': '60 dias',
+                'descricao': 'Recursos avançados com macetes e modo foco',
                 'recursos': [
-                    'Questões ilimitadas',
-                    'Simulados personalizados',
-                    'Relatórios detalhados',
-                    'Ranking nacional',
-                    'Suporte prioritário',
-                    'Botão de macetes',
-                    'Modo foco'
+                    '✅ Todos os recursos anteriores',
+                    '✅ Macetes',
+                    '✅ Modo foco',
+                    '❌ Redação'
                 ],
                 'popular': False,
-                'duracao': '30 dias',
+                'duracao': '60 dias',
                 'tipo': 'premium_plus'
             },
             {
                 'id': 'black',
-                'nome': 'Até o Final do Concurso',
+                'nome': 'Black CNU ⭐',
                 'preco': 70.00,
-                'periodo': 'até o final do concurso',
-                'descricao': 'Com recursos adicionais, respostas de perguntas, botão de macete, modo foco e Redação',
+                'periodo': 'até 5 de dezembro de 2025',
+                'descricao': 'Plano completo com todos os recursos premium',
                 'recursos': [
-                    'Questões ilimitadas',
-                    'Simulados personalizados',
-                    'Relatórios detalhados',
-                    'Ranking nacional',
-                    'Suporte prioritário',
-                    'Botão de macetes',
-                    'Modo foco',
-                    'Correção de redação'
+                    '✅ Todos os recursos',
+                    '✅ Macetes',
+                    '✅ Modo foco',
+                    '✅ Redação',
+                    '✅ Chat tira-dúvidas',
+                    '✅ Pontos centrais',
+                    '✅ Outras explorações'
                 ],
-                'popular': False,
+                'popular': True,
                 'duracao': 'até 5 de dezembro de 2025',
                 'tipo': 'black'
             }
         ]
         
         return jsonify({
-            'sucesso': True,
-            'planos': planos
+            'success': True,
+            'data': planos
         })
         
     except Exception as e:
