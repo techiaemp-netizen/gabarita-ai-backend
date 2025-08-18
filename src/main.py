@@ -425,6 +425,15 @@ def health_check():
         'version': '1.0.0'
     })
 
+@app.route('/api/test-simple', methods=['GET'])
+def test_simple():
+    """Endpoint de teste simples sem dependências"""
+    return jsonify({
+        'sucesso': True,
+        'mensagem': 'Endpoint de teste funcionando',
+        'timestamp': datetime.now().isoformat()
+    }), 200
+
 @app.route('/api/test-opcoes', methods=['GET'])
 def test_opcoes():
     """Endpoint de teste para verificar se as opções estão funcionando"""
