@@ -2,9 +2,9 @@
 Rotas para geração e gerenciamento de questões
 """
 from flask import Blueprint, request, jsonify
-from services.chatgpt_service import chatgpt_service
-from services.perplexity_service import perplexity_service
-from config.firebase_config import firebase_config
+from ..services.chatgpt_service import chatgpt_service
+from ..services.perplexity_service import perplexity_service
+from ..config.firebase_config import firebase_config
 from datetime import datetime
 import uuid
 import random
