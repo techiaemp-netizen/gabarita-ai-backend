@@ -1,4 +1,4 @@
-"""
+﻿"""
 Configuração do Firebase para o Gabarita.AI
 """
 import os
@@ -20,20 +20,31 @@ class FirebaseConfig:
         """Inicializa o Firebase com as credenciais"""
         try:
             if not firebase_admin._apps:
-                # Configuração para desenvolvimento usando variáveis de ambiente
-                cred_dict = {
-                    "type": "service_account",
-                    "project_id": os.getenv('FIREBASE_PROJECT_ID'),
-                    "private_key_id": os.getenv('FIREBASE_PRIVATE_KEY_ID'),
-                    "private_key": os.getenv('FIREBASE_PRIVATE_KEY', '').replace('\\n', '\n'),
-                    "client_email": os.getenv('FIREBASE_CLIENT_EMAIL'),
-                    "client_id": os.getenv('FIREBASE_CLIENT_ID'),
-                    "auth_uri": os.getenv('FIREBASE_AUTH_URI'),
-                    "token_uri": os.getenv('FIREBASE_TOKEN_URI'),
-                }
+                # Verificar se as credenciais são válidas (não são placeholders)
+                firebase_project_id = os.getenv('FIREBASE_PROJECT_ID')
+                firebase_private_key = os.getenv('FIREBASE_PRIVATE_KEY', '')
+                firebase_client_email = os.getenv('FIREBASE_CLIENT_EMAIL')
                 
-                # Verificar se todas as credenciais estão presentes
-                if all(cred_dict.values()):
+                # Verificar se são credenciais reais ou placeholders
+                if (firebase_project_id and 
+                    firebase_private_key and 
+                    firebase_client_email and
+                    'placeholder' not in firebase_private_key and
+                    'placeholder' not in firebase_client_email and
+                    'BEGIN PRIVATE KEY' in firebase_private_key):
+                    
+                    # Configuração para produção usando variáveis de ambiente
+                    cred_dict = {
+                        "type": "service_account",
+                        "project_id": firebase_project_id,
+                        "private_key_id": os.getenv('FIREBASE_PRIVATE_KEY_ID'),
+                        "private_key": firebase_private_key.replace('\\n', '\n'),
+                        "client_email": firebase_client_email,
+                        "client_id": os.getenv('FIREBASE_CLIENT_ID'),
+                        "auth_uri": os.getenv('FIREBASE_AUTH_URI'),
+                        "token_uri": os.getenv('FIREBASE_TOKEN_URI'),
+                    }
+                    
                     cred = credentials.Certificate(cred_dict)
                     firebase_admin.initialize_app(cred)
                     print("[FIREBASE] Firebase inicializado com sucesso!")
@@ -43,13 +54,14 @@ class FirebaseConfig:
                     self.auth = auth
                     print("[FIREBASE] Firestore e Auth conectados com sucesso!")
                 else:
-                    print("[FIREBASE] Credenciais do Firebase não encontradas. Usando modo desenvolvimento.")
+                    print("[FIREBASE] Credenciais do Firebase não encontradas ou são placeholders. Usando modo desenvolvimento.")
                     self.db = None
                     self.auth = None
                     return
             
         except Exception as e:
             print(f"[FIREBASE] Erro ao inicializar Firebase: {e}")
+            print("[FIREBASE] Continuando em modo desenvolvimento sem Firebase.")
             self.db = None
             self.auth = None
     
@@ -67,4 +79,3 @@ class FirebaseConfig:
 
 # Instância global do Firebase
 firebase_config = FirebaseConfig()
-
