@@ -50,4 +50,4 @@ services:
       - key: CORS_ORIGINS
         value: https://gabaritai.app.br,https://gabarita-ai-frontend-in51yjzgf-rafaels-projects-dbcb8980.vercel.app
     healthCheckPath: /health
-    autoDeploy: false
+    autoDeploy: true
