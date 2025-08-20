@@ -98,3 +98,69 @@ coverage/
 *.zip
 *.7z
 *.rar
+
+# ========================================
+# PROTEÇÃO CONTRA CONTAMINAÇÃO DE VERSÕES
+# ========================================
+
+# Arquivos de backup e versões antigas
+*backup*
+*-backup
+*.backup
+*.bak
+*.old
+*-old
+*.orig
+*-original
+*_backup*
+*_old*
+*_original*
+
+# Versões temporárias e experimentais
+*-temp*
+*-tmp*
+*-test*
+*-experimental*
+*-dev*
+*-draft*
+*-wip*
+*_temp*
+*_tmp*
+*_test*
+*_experimental*
+*_dev*
+*_draft*
+*_wip*
+
+# Diretórios de versões
+versions/
+backups/
+archive/
+archived/
+old/
+temp/
+tmp/
+experimental/
+draft/
+wip/
+*-versions/
+*-backups/
+*-archive/
+*-old/
+*-temp/
+*-tmp/
+
+# Arquivos de merge e conflitos
+*.merge
+*.conflict
+*.rej
+*.patch
+
+# Arquivos específicos do projeto
+frontend-versions-archive/
+TESTE*/
+*TESTE*
+*teste*
+*backup*
+*Backup*
+*BACKUP*
