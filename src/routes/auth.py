@@ -72,9 +72,17 @@ def login():
         print(f"Erro no login: {e}")
         return jsonify({'erro': 'Erro interno do servidor'}), 500
 
-@auth_bp.route('/cadastro', methods=['POST'])
+@auth_bp.route('/cadastro', methods=['POST', 'OPTIONS'])
 def cadastro():
     """Endpoint para cadastro de novos usuários"""
+    # Tratar preflight OPTIONS request
+    if request.method == 'OPTIONS':
+        response = jsonify({'status': 'ok'})
+        response.headers.add('Access-Control-Allow-Origin', '*')
+        response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
+        response.headers.add('Access-Control-Allow-Methods', 'GET,POST,PUT,DELETE,OPTIONS')
+        return response
+    
     try:
         data = request.get_json()
         
