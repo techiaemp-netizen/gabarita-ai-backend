@@ -5,6 +5,7 @@ from datetime import datetime
 from .services.chatgpt_service import chatgpt_service
 from .routes.questoes import CONTEUDOS_EDITAL
 from .routes.signup import signup_bp
+from .routes.auth import auth_bp
 from .routes.questoes import questoes_bp
 from .routes.planos import planos_bp
 from .routes.jogos import jogos_bp
@@ -13,15 +14,16 @@ from .routes.opcoes import opcoes_bp
 from .config.firebase_config import firebase_config
 
 app = Flask(__name__)
-# Configuração CORS mais permissiva para resolver problemas de autenticação
+# Configuração CORS específica para o frontend do Vercel
 CORS(app, 
-     origins='*',  # Permitir todas as origens temporariamente
-     allow_headers=['Content-Type', 'Authorization', 'Accept'],
+     origins=['https://gabarita-ai-frontend-pied.vercel.app', 'http://localhost:3000', '*'],
+     allow_headers=['Content-Type', 'Authorization', 'Accept', 'Access-Control-Request-Method', 'Access-Control-Request-Headers'],
      methods=['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-     supports_credentials=False)  # Desabilitar credentials para evitar problemas de autenticação
+     supports_credentials=True)  # Habilitar credentials para autenticação
 
 # Registrar blueprints
 app.register_blueprint(signup_bp, url_prefix='/api/auth')
+app.register_blueprint(auth_bp, url_prefix='/api/auth')
 app.register_blueprint(questoes_bp, url_prefix='/api/questoes')
 app.register_blueprint(planos_bp, url_prefix='/api')
 app.register_blueprint(jogos_bp, url_prefix='/api/jogos')
