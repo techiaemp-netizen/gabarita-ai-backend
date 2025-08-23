@@ -1,4 +1,5 @@
 from flask import Blueprint, jsonify
+from datetime import datetime
 from src.routes.questoes import CONTEUDOS_EDITAL
 
 opcoes_bp = Blueprint('opcoes', __name__)
@@ -32,6 +33,70 @@ def get_cargos_blocos():
         return jsonify({
             'sucesso': False,
             'erro': 'Erro interno do servidor'
+        }), 500
+
+@opcoes_bp.route('/opcoes/diagnostico', methods=['GET'])
+def diagnostico_opcoes():
+    """Endpoint de diagnóstico para verificar o status das opções"""
+    try:
+        # Verificar se CONTEUDOS_EDITAL está carregado
+        if not CONTEUDOS_EDITAL:
+            return jsonify({
+                'sucesso': False,
+                'erro': 'CONTEUDOS_EDITAL não carregado',
+                'diagnostico': {
+                    'conteudos_carregados': False,
+                    'total_cargos': 0,
+                    'total_blocos': 0
+                }
+            }), 500
+        
+        # Contar cargos e blocos
+        total_cargos = len(CONTEUDOS_EDITAL)
+        todos_blocos = set()
+        
+        for cargo, blocos_data in CONTEUDOS_EDITAL.items():
+            if isinstance(blocos_data, dict):
+                todos_blocos.update(blocos_data.keys())
+        
+        total_blocos = len(todos_blocos)
+        
+        # Testar endpoints principais
+        try:
+            # Simular chamada para blocos-cargos
+            blocos_cargos = {}
+            for cargo, blocos_data in CONTEUDOS_EDITAL.items():
+                if isinstance(blocos_data, dict):
+                    for bloco in blocos_data.keys():
+                        if bloco not in blocos_cargos:
+                            blocos_cargos[bloco] = []
+                        blocos_cargos[bloco].append(cargo)
+            
+            endpoint_blocos_cargos_ok = True
+        except Exception as e:
+            endpoint_blocos_cargos_ok = False
+        
+        return jsonify({
+            'sucesso': True,
+            'diagnostico': {
+                'conteudos_carregados': True,
+                'total_cargos': total_cargos,
+                'total_blocos': total_blocos,
+                'endpoint_blocos_cargos_ok': endpoint_blocos_cargos_ok,
+                'primeiros_cargos': list(CONTEUDOS_EDITAL.keys())[:5],
+                'primeiros_blocos': sorted(list(todos_blocos))[:5],
+                'timestamp': str(datetime.now())
+            }
+        }), 200
+        
+    except Exception as e:
+        return jsonify({
+            'sucesso': False,
+            'erro': f'Erro no diagnóstico: {str(e)}',
+            'diagnostico': {
+                'conteudos_carregados': False,
+                'erro_detalhado': str(e)
+            }
         }), 500
 
 @opcoes_bp.route('/opcoes/blocos-cargos', methods=['GET'])
