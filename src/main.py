@@ -10,6 +10,7 @@ from .routes.payments import payments_bp
 from .routes.auth import auth_bp
 from .routes.planos import planos_bp
 from .routes.opcoes import opcoes_bp
+from .routes.jogos import jogos_bp
 from .config.firebase_config import firebase_config
 
 app = Flask(__name__)
@@ -22,6 +23,7 @@ app.register_blueprint(questoes_bp, url_prefix='/api/questoes')
 app.register_blueprint(planos_bp, url_prefix='/api')
 app.register_blueprint(payments_bp)
 app.register_blueprint(opcoes_bp, url_prefix='/api')
+app.register_blueprint(jogos_bp, url_prefix='/api/jogos')
 
 # Aliases para compatibilidade com frontend
 @app.route('/api/plans', methods=['GET'])

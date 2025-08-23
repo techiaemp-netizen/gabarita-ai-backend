@@ -22,14 +22,14 @@ Write-Host ""
 Write-Host "2. INSTRUÇÕES AUTOMÁTICAS:" -ForegroundColor Cyan
 Write-Host "   • Faça login na sua conta Render" -ForegroundColor White
 Write-Host "   • Clique em 'New +' > 'Web Service'" -ForegroundColor White
-Write-Host "   • Conecte seu repositório: techiaemp-netizen/gabarita-ai-backend" -ForegroundColor White
-Write-Host "   • Branch: master" -ForegroundColor White
+Write-Host "   • Conecte seu repositório: techiaemp-netizen/gabarita-ai-backend-public" -ForegroundColor White
+Write-Host "   • Branch: main" -ForegroundColor White
 Write-Host ""
 
 Write-Host "3. CONFIGURAÇÕES (copie e cole):" -ForegroundColor Cyan
 Write-Host "   Nome: gabarita-ai-backend" -ForegroundColor White
 Write-Host "   Região: Oregon (US West)" -ForegroundColor White
-Write-Host "   Branch: master" -ForegroundColor White
+Write-Host "   Branch: main" -ForegroundColor White
 Write-Host "   Build Command: pip install -r requirements.txt" -ForegroundColor White
 Write-Host "   Start Command: python src/main.py" -ForegroundColor White
 Write-Host "   Plan: Free" -ForegroundColor White
