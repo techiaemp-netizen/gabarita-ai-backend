@@ -148,6 +148,11 @@ def cadastro():
                 pass
         
         # Cadastro simulado para desenvolvimento
+        # Simular verificação de e-mail duplicado
+        emails_cadastrados = ['teste@exemplo.com', 'admin@gabarita.ai']
+        if email in emails_cadastrados:
+            return jsonify({'erro': 'E-mail já cadastrado'}), 409
+            
         usuario_id = str(uuid.uuid4())
         usuario_data = {
             'id': usuario_id,
