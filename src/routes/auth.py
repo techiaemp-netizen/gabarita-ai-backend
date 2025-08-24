@@ -1,7 +1,7 @@
 """
 Rotas de autenticação para o Gabarita.AI
 """
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, request, jsonify, current_app
 from firebase_admin import auth as firebase_auth, firestore
 from ..config.firebase_config import firebase_config
 import uuid
@@ -90,7 +90,7 @@ def cadastro():
         # Fallback tolerante: aceitar 'nome' ou 'nomeCompleto'
         nome = (data.get("nome") or data.get("nomeCompleto") or "").strip()
         if not nome:
-            app.logger.warning("Signup payload inválido - nome vazio: %s", data)
+            current_app.logger.warning("Signup payload inválido - nome vazio: %s", data)
             return jsonify({'erro': 'Campo nome é obrigatório'}), 400
         data["nome"] = nome
         
@@ -101,7 +101,7 @@ def cadastro():
         campos_obrigatorios = ['nome', 'email', 'senha', 'cargo', 'bloco']
         for campo in campos_obrigatorios:
             if not data.get(campo):
-                app.logger.warning("Signup payload inválido - campo %s vazio: %s", campo, data)
+                current_app.logger.warning("Signup payload inválido - campo %s vazio: %s", campo, data)
                 return jsonify({'erro': f'Campo {campo} é obrigatório'}), 400
         
         # Validar confirmação de senha
@@ -188,10 +188,10 @@ def cadastro():
         })
         
     except ValueError as e:
-        app.logger.error(f"Erro de validação no cadastro: {e}")
+        current_app.logger.error(f"Erro de validação no cadastro: {e}")
         return jsonify({'erro': 'Dados inválidos fornecidos'}), 422
     except Exception as e:
-        app.logger.error(f"Erro interno no cadastro: {e}", exc_info=True)
+        current_app.logger.error(f"Erro interno no cadastro: {e}", exc_info=True)
         return jsonify({'erro': 'Erro interno do servidor'}), 500
 
 @auth_bp.route('/verificar-token', methods=['POST'])
