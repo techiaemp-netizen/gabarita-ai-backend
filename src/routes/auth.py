@@ -187,8 +187,11 @@ def cadastro():
             'token': usuario_id
         })
         
+    except ValueError as e:
+        app.logger.error(f"Erro de validação no cadastro: {e}")
+        return jsonify({'erro': 'Dados inválidos fornecidos'}), 422
     except Exception as e:
-        print(f"Erro no cadastro: {e}")
+        app.logger.error(f"Erro interno no cadastro: {e}", exc_info=True)
         return jsonify({'erro': 'Erro interno do servidor'}), 500
 
 @auth_bp.route('/verificar-token', methods=['POST'])
