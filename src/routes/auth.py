@@ -84,12 +84,24 @@ def cadastro():
         return response
     
     try:
-        data = request.get_json()
+        import re
+        data = request.get_json(force=True) or {}
+        
+        # Fallback tolerante: aceitar 'nome' ou 'nomeCompleto'
+        nome = (data.get("nome") or data.get("nomeCompleto") or "").strip()
+        if not nome:
+            app.logger.warning("Signup payload inválido - nome vazio: %s", data)
+            return jsonify({'erro': 'Campo nome é obrigatório'}), 400
+        data["nome"] = nome
+        
+        # Normalizar CPF (só dígitos)
+        data["cpf"] = re.sub(r"\D", "", data.get("cpf", ""))
         
         # Validar dados obrigatórios
         campos_obrigatorios = ['nome', 'email', 'senha', 'cargo', 'bloco']
         for campo in campos_obrigatorios:
             if not data.get(campo):
+                app.logger.warning("Signup payload inválido - campo %s vazio: %s", campo, data)
                 return jsonify({'erro': f'Campo {campo} é obrigatório'}), 400
         
         # Validar confirmação de senha
