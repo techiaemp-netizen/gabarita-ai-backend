@@ -117,14 +117,17 @@ def cadastro():
         nivel_escolaridade = data.get('nivel_escolaridade', 'Superior')
         
         # Verificar se e-mail já existe
+        current_app.logger.info(f"Firebase conectado: {firebase_config.is_connected()}")
         if firebase_config.is_connected():
             try:
+                current_app.logger.info(f"Tentando criar usuário no Firebase: {email}")
                 # Tentar criar usuário no Firebase Auth
                 user = firebase_auth.create_user(
                     email=email,
                     password=senha,
                     display_name=nome
                 )
+                current_app.logger.info(f"Usuário criado no Firebase Auth: {user.uid}")
                 
                 # Criar documento do usuário no Firestore
                 usuario_data = {
@@ -144,7 +147,9 @@ def cadastro():
                 
                 # Salvar no Firestore
                 db = firebase_config.get_db()
+                current_app.logger.info("Salvando usuário no Firestore")
                 db.collection('usuarios').document(user.uid).set(usuario_data)
+                current_app.logger.info("Usuário salvo no Firestore com sucesso")
                 
                 return jsonify({
                     'sucesso': True,
@@ -153,16 +158,19 @@ def cadastro():
                 })
                 
             except firebase_auth.EmailAlreadyExistsError:
+                current_app.logger.warning(f"E-mail já existe: {email}")
                 return jsonify({'erro': 'E-mail já cadastrado'}), 409
             except Exception as e:
-                print(f"Erro no cadastro Firebase: {e}")
+                current_app.logger.error(f"Erro no cadastro Firebase: {e}", exc_info=True)
                 # Fallback para cadastro simulado
                 pass
         
         # Cadastro simulado para desenvolvimento
+        current_app.logger.info("Usando cadastro simulado (fallback)")
         # Simular verificação de e-mail duplicado
         emails_cadastrados = ['teste@exemplo.com', 'admin@gabarita.ai']
         if email in emails_cadastrados:
+            current_app.logger.warning(f"E-mail já existe no fallback: {email}")
             return jsonify({'erro': 'E-mail já cadastrado'}), 409
             
         usuario_id = str(uuid.uuid4())
@@ -181,6 +189,7 @@ def cadastro():
             'ultimo_acesso': datetime.now().isoformat()
         }
         
+        current_app.logger.info(f"Usuário criado no fallback: {usuario_id}")
         return jsonify({
             'sucesso': True,
             'usuario': usuario_data,
