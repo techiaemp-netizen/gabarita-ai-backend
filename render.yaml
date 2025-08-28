@@ -8,46 +8,45 @@ services:
     envVars:
       - key: PYTHON_VERSION
         value: 3.11.0
-      # OpenAI Configuration
+      - key: PORT
+        generateValue: true
       - key: OPENAI_API_KEY
-        sync: false  # This will need to be set manually in Render dashboard
-      - key: OPENAI_API_BASE
-        value: https://api.openai.com/v1
-      # Perplexity Configuration
+        sync: false
       - key: PERPLEXITY_API_KEY
-        sync: false  # This will need to be set manually in Render dashboard
-      # Firebase Configuration
+        sync: false
+      - key: FIREBASE_TYPE
+        sync: false
       - key: FIREBASE_PROJECT_ID
-        sync: false  # This will need to be set manually in Render dashboard
+        sync: false
       - key: FIREBASE_PRIVATE_KEY_ID
-        sync: false  # This will need to be set manually in Render dashboard
+        sync: false
       - key: FIREBASE_PRIVATE_KEY
-        sync: false  # This will need to be set manually in Render dashboard
+        sync: false
       - key: FIREBASE_CLIENT_EMAIL
-        sync: false  # This will need to be set manually in Render dashboard
+        sync: false
       - key: FIREBASE_CLIENT_ID
-        sync: false  # This will need to be set manually in Render dashboard
+        sync: false
       - key: FIREBASE_AUTH_URI
-        value: https://accounts.google.com/o/oauth2/auth
+        sync: false
       - key: FIREBASE_TOKEN_URI
-        value: https://oauth2.googleapis.com/token
-      # MercadoPago Configuration
-      - key: MERCADO_PAGO_ACCESS_TOKEN
-        sync: false  # This will need to be set manually in Render dashboard
-      - key: MERCADO_PAGO_WEBHOOK_SECRET
-        sync: false  # This will need to be set manually in Render dashboard
-      # Application Configuration
+        sync: false
+      - key: FIREBASE_AUTH_PROVIDER_X509_CERT_URL
+        sync: false
+      - key: FIREBASE_CLIENT_X509_CERT_URL
+        sync: false
+      - key: MERCADOPAGO_ACCESS_TOKEN
+        sync: false
+      - key: MERCADOPAGO_PUBLIC_KEY
+        sync: false
       - key: SECRET_KEY
-        value: gabarita_ai_secret_key_2025
+        generateValue: true
       - key: DEBUG
         value: False
-      # URLs Configuration
       - key: FRONTEND_URL
-        value: https://gabaritai.app.br
+        value: https://gabarita-ai-frontend.onrender.com
       - key: BACKEND_URL
-        sync: false  # This will be set automatically by Render
-      # CORS Configuration
+        value: https://gabarita-ai-backend.onrender.com
       - key: CORS_ORIGINS
-        value: https://gabaritai.app.br,https://gabarita-ai-frontend-in51yjzgf-rafaels-projects-dbcb8980.vercel.app
+        value: https://gabarita-ai-frontend.onrender.com,http://localhost:3000
     healthCheckPath: /health
-    autoDeploy: true
+    autoDeploy: false
