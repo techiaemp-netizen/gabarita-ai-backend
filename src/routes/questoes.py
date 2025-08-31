@@ -2065,7 +2065,7 @@ def obter_metas_usuario(usuario_id):
     except Exception as e:
         logger.error("Erro ao buscar metas do usuário", extra={
             "usuario_id": usuario_id,
-            "erro": str(e)
+            "error": str(e)
         })
         return ResponseFormatter.internal_error(
             message=f'Erro ao buscar metas do usuário: {str(e)}'
@@ -2380,7 +2380,7 @@ def obter_notificacoes(usuario_id):
     except Exception as e:
         logger.error("Erro ao buscar notificações", extra={
             "usuario_id": usuario_id,
-            "erro": str(e)
+            "error": str(e)
         })
         return ResponseFormatter.internal_error(
             message=f'Erro ao buscar notificações: {str(e)}'
@@ -2660,7 +2660,7 @@ def obter_pontos_centrais(questao_id):
         
         return ResponseFormatter.success({
             'questao_id': questao_id,
-            'dados': pontos_centrais
+            'data': pontos_centrais
         })
         
     except Exception as e:
@@ -2744,7 +2744,7 @@ def obter_outras_exploracoes(questao_id):
         
         return ResponseFormatter.success({
             'questao_id': questao_id,
-            'dados': exploracoes
+            'data': exploracoes
         })
         
     except Exception as e:

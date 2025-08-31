@@ -90,7 +90,7 @@ def obter_noticias():
         })
         
         return ResponseFormatter.success({
-            'dados': filtered_news,
+            'data': filtered_news,
             'total': len(filtered_news)
         }, 'Notícias obtidas com sucesso')
         

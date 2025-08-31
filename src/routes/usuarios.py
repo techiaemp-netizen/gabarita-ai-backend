@@ -9,6 +9,77 @@ import uuid
 usuarios_bp = Blueprint('usuarios', __name__)
 logger = StructuredLogger('usuarios')
 
+@usuarios_bp.route('/<user_id>', methods=['GET'])
+@log_request(logger)
+def obter_usuario_por_id(user_id):
+    """Endpoint para obter dados do usuário por ID"""
+    try:
+        logger.info("Iniciando obtenção de usuário por ID", extra={'user_id': user_id})
+        
+        # Buscar usuário no Firestore usando o user_id
+        if firebase_config.is_connected():
+            try:
+                db = firebase_config.get_db()
+                
+                # Buscar primeiro na coleção 'users'
+                doc = db.collection('users').document(user_id).get()
+                
+                if not doc.exists:
+                    # Se não encontrar, buscar na coleção 'usuarios'
+                    doc = db.collection('usuarios').document(user_id).get()
+                
+                if doc.exists:
+                    usuario_data = doc.to_dict()
+                    usuario_data['id'] = doc.id
+                    
+                    # Remover dados sensíveis
+                    if 'senha' in usuario_data:
+                        del usuario_data['senha']
+                    
+                    logger.info("Usuário obtido com sucesso via Firestore", extra={
+                        'user_id': user_id,
+                        'found_in': 'users' if db.collection('users').document(user_id).get().exists else 'usuarios'
+                    })
+                    
+                    return ResponseFormatter.success(
+                        data=usuario_data,
+                        message="Usuário obtido com sucesso"
+                    )
+                else:
+                    logger.warning("Usuário não encontrado no Firestore", extra={'user_id': user_id})
+                    return ResponseFormatter.not_found("Usuário não encontrado")
+                    
+            except Exception as e:
+                logger.error("Erro ao buscar usuário no Firestore", extra={"error": str(e), "user_id": user_id})
+                return ResponseFormatter.internal_error("Erro interno do servidor")
+        else:
+            # Modo desenvolvimento - dados simulados
+            usuario_simulado = {
+                'id': user_id,
+                'nome': f'Usuário {user_id}',
+                'email': f'user{user_id}@teste.com',
+                'cargo': 'Enfermeiro',
+                'bloco': 'Bloco 1 - Seguridade Social',
+                'nivel_escolaridade': 'Superior',
+                'plano_atual': 'gratuito',
+                'data_cadastro': datetime.now().isoformat(),
+                'ultimo_acesso': datetime.now().isoformat()
+            }
+            
+            logger.info("Usuário simulado gerado com sucesso", extra={
+                'user_id': user_id,
+                'modo': 'desenvolvimento'
+            })
+            
+            return ResponseFormatter.success(
+                data=usuario_simulado,
+                message="Usuário obtido com sucesso (modo desenvolvimento)"
+            )
+            
+    except Exception as e:
+        logger.error("Erro interno ao obter usuário por ID", extra={"error": str(e), "user_id": user_id})
+        return ResponseFormatter.internal_error("Erro interno do servidor")
+
 @usuarios_bp.route('/perfil', methods=['GET'])
 @log_request(logger)
 def obter_perfil():

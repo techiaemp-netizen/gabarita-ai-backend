@@ -640,6 +640,12 @@ def sair():
         logger.error("Erro no processo de logout", extra={"error": str(e)})
         return ResponseFormatter.internal_error('Erro interno do servidor')
 
+@auth_bp.route('/logout', methods=['POST'])
+@log_request(logger)
+def logout():
+    """Endpoint para logout de usuários (alias para /sair)"""
+    return sair()
+
 @auth_bp.route('/renovar-token', methods=['POST'])
 @log_request(logger)
 def renovar_token():
