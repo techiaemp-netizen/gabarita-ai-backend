@@ -189,7 +189,7 @@ def obter_planos():
         logger.error("Erro ao listar planos", extra={"error": str(e)})
         return ResponseFormatter.internal_error(f"Erro ao listar planos: {str(e)}")
 
-@payments_bp.route('/processar', methods=['POST'])
+@payments_bp.route('/process', methods=['POST'])
 @log_request(logger)
 def processar_pagamento():
     """Criar preferência de pagamento no Mercado Pago"""
@@ -426,7 +426,7 @@ def obter_status_pagamento(payment_id):
         })
         return ResponseFormatter.internal_error(str(e))
 
-@payments_bp.route('/ativar-plano', methods=['POST'])
+@payments_bp.route('/activate-plan', methods=['POST'])
 @log_request(logger)
 def ativar_plano():
     """Ativar plano manualmente (para testes)"""

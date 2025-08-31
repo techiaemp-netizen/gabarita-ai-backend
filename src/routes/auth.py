@@ -231,7 +231,7 @@ def cadastrar():
         })
         return ResponseFormatter.internal_error("Erro interno do servidor")
 
-@auth_bp.route('/cadastro', methods=['POST', 'OPTIONS'])
+@auth_bp.route('/signup', methods=['POST', 'OPTIONS'])
 def cadastro():
     """Endpoint para cadastro de novos usuários"""
     # Tratar preflight OPTIONS request

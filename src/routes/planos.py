@@ -270,7 +270,7 @@ def obter_limite_questoes():
         logger.error("Erro ao obter limite de questões", extra={"error": str(e)})
         return ResponseFormatter.internal_error('Erro interno do servidor')
 
-@planos_bp.route('/processar-pagamento', methods=['POST'])
+@planos_bp.route('/process-payment', methods=['POST'])
 @log_request(logger)
 def processar_pagamento():
     """Processa o pagamento de um plano"""
