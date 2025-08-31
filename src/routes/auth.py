@@ -35,8 +35,8 @@ def validate_nickname(nickname):
         return False, "Apelido deve ter pelo menos 4 caracteres"
     return True, ""
 
-@auth_bp.route('/login', methods=['POST'])
-def login():
+@auth_bp.route('/entrar', methods=['POST'])
+def entrar():
     """Endpoint para login de usuários"""
     try:
         logger.info("Tentativa de login iniciada")
@@ -133,9 +133,9 @@ def login():
         print(f"Erro no login: {e}")
         return ResponseFormatter.internal_error('Erro interno do servidor')
 
-@auth_bp.route('/signup', methods=['POST'])
+@auth_bp.route('/cadastrar', methods=['POST'])
 @log_request(logger)
-def signup():
+def cadastrar():
     """Endpoint para cadastro de usuario com hash de senha"""
     try:
         data = request.get_json()
@@ -625,9 +625,9 @@ def complete_profile():
         })
         return ResponseFormatter.internal_error('Erro interno do servidor')
 
-@auth_bp.route('/logout', methods=['POST'])
+@auth_bp.route('/sair', methods=['POST'])
 @log_request(logger)
-def logout():
+def sair():
     """Endpoint para logout de usuários"""
     try:
         logger.info("Iniciando processo de logout")
@@ -640,9 +640,9 @@ def logout():
         logger.error("Erro no processo de logout", extra={"error": str(e)})
         return ResponseFormatter.internal_error('Erro interno do servidor')
 
-@auth_bp.route('/refresh-token', methods=['POST'])
+@auth_bp.route('/renovar-token', methods=['POST'])
 @log_request(logger)
-def refresh_token():
+def renovar_token():
     """Endpoint para renovar token de autenticação"""
     try:
         data = request.get_json()

@@ -61,9 +61,9 @@ MOCK_NEWS = [
     }
 ]
 
-@news_bp.route('/news', methods=['GET'])
+@news_bp.route('/noticias', methods=['GET'])
 @log_request(logger)
-def get_news():
+def obter_noticias():
     """Retorna lista de notícias"""
     logger.info("Iniciando busca de notícias")
     try:
@@ -122,9 +122,9 @@ def get_news_by_id(news_id):
         logger.error("Erro ao buscar notícia", extra={'news_id': news_id, 'error': str(e)})
         return ResponseFormatter.internal_error('Erro ao buscar notícia', str(e))
 
-@news_bp.route('/news/categories', methods=['GET'])
+@news_bp.route('/noticias/categorias', methods=['GET'])
 @log_request(logger)
-def get_news_categories():
+def obter_categorias_noticias():
     """Retorna lista de categorias disponíveis"""
     logger.info("Iniciando busca de categorias de notícias")
     try:

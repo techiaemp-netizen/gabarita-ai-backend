@@ -6,9 +6,9 @@ from utils.logger import StructuredLogger, log_request
 user_bp = Blueprint('user', __name__)
 logger = StructuredLogger('user')
 
-@user_bp.route('/users', methods=['GET'])
+@user_bp.route('/usuarios', methods=['GET'])
 @log_request(logger)
-def get_users():
+def obter_usuarios():
     try:
         logger.info("Listando todos os usuários")
         users = User.query.all()

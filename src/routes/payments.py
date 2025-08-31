@@ -175,9 +175,9 @@ PLANOS_DISPONIVEIS = {
     }
 }
 
-@payments_bp.route('/plans', methods=['GET'])
+@payments_bp.route('/planos', methods=['GET'])
 @log_request(logger)
-def listar_planos():
+def obter_planos():
     """Listar todos os planos disponíveis"""
     try:
         logger.info("Listando planos disponíveis")
@@ -189,9 +189,9 @@ def listar_planos():
         logger.error("Erro ao listar planos", extra={"error": str(e)})
         return ResponseFormatter.internal_error(f"Erro ao listar planos: {str(e)}")
 
-@payments_bp.route('/process', methods=['POST'])
+@payments_bp.route('/processar', methods=['POST'])
 @log_request(logger)
-def criar_pagamento():
+def processar_pagamento():
     """Criar preferência de pagamento no Mercado Pago"""
     try:
         data = request.get_json()
@@ -394,7 +394,7 @@ def webhook_pagamento():
 
 @payments_bp.route('/status/<payment_id>', methods=['GET'])
 @log_request(logger)
-def status_pagamento(payment_id):
+def obter_status_pagamento(payment_id):
     """Verificar status de um pagamento"""
     try:
         logger.info("Consultando status do pagamento", extra={
@@ -426,7 +426,7 @@ def status_pagamento(payment_id):
         })
         return ResponseFormatter.internal_error(str(e))
 
-@payments_bp.route('/activate-plan', methods=['POST'])
+@payments_bp.route('/ativar-plano', methods=['POST'])
 @log_request(logger)
 def ativar_plano():
     """Ativar plano manualmente (para testes)"""
