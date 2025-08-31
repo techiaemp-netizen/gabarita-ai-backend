@@ -3,7 +3,7 @@ Routas de Pagamento - Mercado Pago Integration
 Gabarit-AI Backend
 """
 
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, request
 import os
 import mercadopago
 import firebase_admin
@@ -11,16 +11,21 @@ from firebase_admin import firestore
 from datetime import datetime, timedelta
 import hashlib
 import hmac
-from ..config.firebase_config import firebase_config
+from config.firebase_config import firebase_config
+from utils.response_formatter import ResponseFormatter
+from utils.logger import StructuredLogger, log_request
 
 payments_bp = Blueprint('payments', __name__)
+
+# Initialize structured logger
+logger = StructuredLogger(__name__)
 
 def get_db():
     """Retorna a instância do Firestore se disponível"""
     return firebase_config.get_db()
 
 # Configurar Mercado Pago
-sdk = mercadopago.SDK(os.getenv('MERCADO_PAGO_ACCESS_TOKEN'))
+sdk = mercadopago.SDK(os.getenv('MERCADOPAGO_ACCESS_TOKEN'))
 
 # Definir planos globalmente
 PLANOS_DISPONIVEIS = {
@@ -170,19 +175,22 @@ PLANOS_DISPONIVEIS = {
     }
 }
 
-@payments_bp.route('/api/plans', methods=['GET'])
+@payments_bp.route('/plans', methods=['GET'])
+@log_request(logger)
 def listar_planos():
     """Listar todos os planos disponíveis"""
     try:
-        return jsonify({
-            'success': True,
-            'plans': list(PLANOS_DISPONIVEIS.values())
-        })
+        logger.info("Listando planos disponíveis")
+        return ResponseFormatter.success(
+            data=list(PLANOS_DISPONIVEIS.values()),
+            message="Planos listados com sucesso"
+        )
     except Exception as e:
-        print(f"[PAGAMENTO] Erro ao criar pagamento: {str(e)}")
-        return jsonify({'error': f'Erro ao criar pagamento: {str(e)}'}), 500
+        logger.error("Erro ao listar planos", extra={"error": str(e)})
+        return ResponseFormatter.internal_error(f"Erro ao listar planos: {str(e)}")
 
-@payments_bp.route('/api/pagamentos/criar', methods=['POST'])
+@payments_bp.route('/process', methods=['POST'])
+@log_request(logger)
 def criar_pagamento():
     """Criar preferência de pagamento no Mercado Pago"""
     try:
@@ -191,15 +199,23 @@ def criar_pagamento():
         user_id = data.get('userId')
         user_email = data.get('userEmail')
         
+        logger.info("Iniciando criação de pagamento", extra={
+            "plano": plano,
+            "user_id": user_id,
+            "user_email": user_email
+        })
+        
         # Usar planos globais
         if plano not in PLANOS_DISPONIVEIS:
-            return jsonify({'error': 'Plano inválido'}), 400
+            logger.warning("Plano inválido solicitado", extra={"plano": plano})
+            return ResponseFormatter.bad_request("Plano inválido")
             
         plano_info = PLANOS_DISPONIVEIS[plano]
         
         # Planos gratuitos não precisam de pagamento
         if plano_info['price'] == 0:
-            return jsonify({'error': 'Plano gratuito não requer pagamento'}), 400
+            logger.warning("Tentativa de pagamento para plano gratuito", extra={"plano": plano})
+            return ResponseFormatter.bad_request("Plano gratuito não requer pagamento")
         
         # Criar preferência no Mercado Pago
         preference_data = {
@@ -220,10 +236,20 @@ def criar_pagamento():
             "external_reference": f"{user_id}_{plano}_{datetime.now().timestamp()}"
         }
         
+        logger.info("Criando preferência no Mercado Pago", extra={
+            "plano": plano,
+            "valor": plano_info['price']
+        })
+        
         preference_response = sdk.preference().create(preference_data)
         
         if preference_response["status"] == 201:
             preference = preference_response["response"]
+            
+            logger.info("Preferência criada com sucesso", extra={
+                "preference_id": preference['id'],
+                "user_id": user_id
+            })
             
             # Salvar transação no Firebase
             transaction_data = {
@@ -241,33 +267,67 @@ def criar_pagamento():
             db = get_db()
             if db:
                 db.collection('transactions').add(transaction_data)
+                logger.info("Transação salva no Firebase", extra={
+                    "preference_id": preference['id'],
+                    "user_id": user_id
+                })
+            else:
+                logger.warning("Firebase não disponível para salvar transação")
             
-            return jsonify({
-                'preferenceId': preference['id'],
-                'initPoint': preference['init_point'],
-                'sandboxInitPoint': preference['sandbox_init_point']
-            })
+            return ResponseFormatter.success(
+                data={
+                    'preferenceId': preference['id'],
+                    'initPoint': preference['init_point'],
+                    'sandboxInitPoint': preference['sandbox_init_point']
+                },
+                message="Pagamento criado com sucesso"
+            )
         else:
-            return jsonify({'error': 'Erro ao criar pagamento'}), 500
+            logger.error("Erro ao criar preferência no Mercado Pago", extra={
+                "status": preference_response.get("status"),
+                "response": preference_response.get("response")
+            })
+            return ResponseFormatter.internal_error("Erro ao criar pagamento")
             
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        logger.error("Erro interno ao criar pagamento", extra={
+            "error": str(e),
+            "user_id": user_id,
+            "plano": plano
+        })
+        return ResponseFormatter.internal_error(str(e))
 
-@payments_bp.route('/api/pagamentos/webhook', methods=['POST'])
+@payments_bp.route('/webhook', methods=['POST'])
+@log_request(logger)
 def webhook_pagamento():
     """Webhook para notificações do Mercado Pago"""
     try:
+        logger.info("Recebendo webhook do Mercado Pago")
+        
         # Validar assinatura do webhook
         x_signature = request.headers.get('x-signature')
         x_request_id = request.headers.get('x-request-id')
         
         if not validate_webhook_signature(request.data, x_signature, x_request_id):
-            return jsonify({'error': 'Assinatura inválida'}), 401
+            logger.warning("Webhook com assinatura inválida", extra={
+                "x_signature": x_signature,
+                "x_request_id": x_request_id
+            })
+            return ResponseFormatter.unauthorized("Assinatura inválida")
             
         data = request.get_json()
         
+        logger.info("Webhook validado com sucesso", extra={
+            "webhook_type": data.get('type'),
+            "data_id": data.get('data', {}).get('id')
+        })
+        
         if data.get('type') == 'payment':
             payment_id = data['data']['id']
+            
+            logger.info("Processando pagamento", extra={
+                "payment_id": payment_id
+            })
             
             # Buscar informações do pagamento
             payment_info = sdk.payment().get(payment_id)
@@ -277,43 +337,97 @@ def webhook_pagamento():
                 external_reference = payment.get('external_reference')
                 status = payment.get('status')
                 
-                # Atualizar transação no Firebase
-                transactions_ref = db.collection('transactions')
-                query = transactions_ref.where('externalReference', '==', external_reference)
-                docs = query.get()
+                logger.info("Informações do pagamento obtidas", extra={
+                    "payment_id": payment_id,
+                    "external_reference": external_reference,
+                    "status": status
+                })
                 
-                for doc in docs:
-                    doc.reference.update({
-                        'status': status,
-                        'paymentId': payment_id,
-                        'updatedAt': datetime.now()
-                    })
+                # Atualizar transação no Firebase
+                db = get_db()
+                if db:
+                    transactions_ref = db.collection('transactions')
+                    query = transactions_ref.where('externalReference', '==', external_reference)
+                    docs = query.get()
                     
-                    # Se pagamento aprovado, ativar plano
-                    if status == 'approved':
-                        transaction_data = doc.to_dict()
-                        ativar_plano_usuario(transaction_data)
+                    for doc in docs:
+                        doc.reference.update({
+                            'status': status,
+                            'paymentId': payment_id,
+                            'updatedAt': datetime.now()
+                        })
                         
-        return jsonify({'status': 'ok'})
+                        logger.info("Transação atualizada no Firebase", extra={
+                            "payment_id": payment_id,
+                            "status": status,
+                            "transaction_id": doc.id
+                        })
+                        
+                        # Se pagamento aprovado, ativar plano
+                        if status == 'approved':
+                            transaction_data = doc.to_dict()
+                            logger.info("Ativando plano do usuário", extra={
+                                "payment_id": payment_id,
+                                "user_id": transaction_data.get('userId'),
+                                "plano": transaction_data.get('plano')
+                            })
+                            ativar_plano_usuario(transaction_data)
+                else:
+                    logger.error("Firebase não disponível para atualizar transação")
+            else:
+                logger.error("Erro ao obter informações do pagamento", extra={
+                    "payment_id": payment_id,
+                    "status": payment_info.get('status')
+                })
+                        
+        logger.info("Webhook processado com sucesso")
+        return ResponseFormatter.success(
+            data={'status': 'ok'},
+            message="Webhook processado com sucesso"
+        )
         
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        logger.error("Erro interno no webhook", extra={
+            "error": str(e)
+        })
+        return ResponseFormatter.internal_error(str(e))
 
-@payments_bp.route('/api/pagamentos/status/<payment_id>', methods=['GET'])
+@payments_bp.route('/status/<payment_id>', methods=['GET'])
+@log_request(logger)
 def status_pagamento(payment_id):
     """Verificar status de um pagamento"""
     try:
+        logger.info("Consultando status do pagamento", extra={
+            "payment_id": payment_id
+        })
+        
         payment_info = sdk.payment().get(payment_id)
         
         if payment_info['status'] == 200:
-            return jsonify(payment_info['response'])
+            logger.info("Status do pagamento obtido com sucesso", extra={
+                "payment_id": payment_id,
+                "status": payment_info['response'].get('status')
+            })
+            return ResponseFormatter.success(
+                data=payment_info['response'],
+                message="Status do pagamento obtido com sucesso"
+            )
         else:
-            return jsonify({'error': 'Pagamento não encontrado'}), 404
+            logger.warning("Pagamento não encontrado", extra={
+                "payment_id": payment_id,
+                "api_status": payment_info.get('status')
+            })
+            return ResponseFormatter.not_found("Pagamento não encontrado")
             
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        logger.error("Erro ao consultar status do pagamento", extra={
+            "payment_id": payment_id,
+            "error": str(e)
+        })
+        return ResponseFormatter.internal_error(str(e))
 
-@payments_bp.route('/api/pagamentos/ativar-plano', methods=['POST'])
+@payments_bp.route('/activate-plan', methods=['POST'])
+@log_request(logger)
 def ativar_plano():
     """Ativar plano manualmente (para testes)"""
     try:
@@ -321,8 +435,17 @@ def ativar_plano():
         user_id = data.get('userId')
         plano = data.get('plano')
         
+        logger.info("Tentativa de ativação manual de plano", extra={
+            "user_id": user_id,
+            "plano": plano
+        })
+        
         if not user_id or not plano:
-            return jsonify({'error': 'userId e plano são obrigatórios'}), 400
+            logger.warning("Dados obrigatórios ausentes para ativação de plano", extra={
+                "user_id": user_id,
+                "plano": plano
+            })
+            return ResponseFormatter.bad_request("userId e plano são obrigatórios")
             
         # Simular dados da transação
         transaction_data = {
@@ -334,12 +457,27 @@ def ativar_plano():
         result = ativar_plano_usuario(transaction_data)
         
         if result:
-            return jsonify({'message': 'Plano ativado com sucesso'})
+            logger.info("Plano ativado manualmente com sucesso", extra={
+                "user_id": user_id,
+                "plano": plano
+            })
+            return ResponseFormatter.success(
+                data={'activated': True},
+                message="Plano ativado com sucesso"
+            )
         else:
-            return jsonify({'error': 'Erro ao ativar plano'}), 500
+            logger.error("Erro ao ativar plano manualmente", extra={
+                "user_id": user_id,
+                "plano": plano
+            })
+            return ResponseFormatter.internal_error("Erro ao ativar plano")
             
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        logger.error("Erro interno na ativação manual de plano", extra={
+            "error": str(e),
+            "user_id": data.get('userId') if 'data' in locals() else None
+        })
+        return ResponseFormatter.internal_error(str(e))
 
 def validate_webhook_signature(data, x_signature, x_request_id):
     """Validar assinatura do webhook do Mercado Pago"""
@@ -384,13 +522,24 @@ def ativar_plano_usuario(transaction_data):
         duracao = transaction_data['duracao']
         plano = transaction_data['plano']
         
+        logger.info("Iniciando ativação de plano do usuário", extra={
+            "user_id": user_id,
+            "plano": plano,
+            "duracao": duracao
+        })
+        
         # Calcular data de expiração
         data_expiracao = datetime.now() + timedelta(days=duracao)
         
         # Atualizar usuário no Firebase
         db = get_db()
         if not db:
+            logger.error("Firebase não disponível para ativar plano", extra={
+                "user_id": user_id,
+                "plano": plano
+            })
             return False
+            
         user_ref = db.collection('users').document(user_id)
         user_ref.update({
             'planoAtivo': plano,
@@ -399,8 +548,19 @@ def ativar_plano_usuario(transaction_data):
             'updatedAt': datetime.now()
         })
         
+        logger.info("Plano do usuário ativado com sucesso", extra={
+            "user_id": user_id,
+            "plano": plano,
+            "data_expiracao": data_expiracao.isoformat(),
+            "questoes_restantes": 1000 if plano != 'free' else 5
+        })
+        
         return True
         
     except Exception as e:
-        print(f"Erro ao ativar plano: {e}")
+        logger.error("Erro ao ativar plano do usuário", extra={
+            "user_id": transaction_data.get('userId'),
+            "plano": transaction_data.get('plano'),
+            "error": str(e)
+        })
         return False

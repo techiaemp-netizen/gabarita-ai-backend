@@ -1,8 +1,11 @@
-from flask import Blueprint, jsonify, request
+from flask import Blueprint, request
 from datetime import datetime, timedelta
+from utils.response_formatter import ResponseFormatter
+from utils.logger import StructuredLogger, log_request
 import random
 
 news_bp = Blueprint('news', __name__)
+logger = StructuredLogger('news')
 
 # Mock data para notícias
 MOCK_NEWS = [
@@ -59,12 +62,19 @@ MOCK_NEWS = [
 ]
 
 @news_bp.route('/news', methods=['GET'])
+@log_request(logger)
 def get_news():
     """Retorna lista de notícias"""
+    logger.info("Iniciando busca de notícias")
     try:
         # Parâmetros de filtro opcionais
         category = request.args.get('category')
         limit = request.args.get('limit', 10, type=int)
+        
+        logger.info("Aplicando filtros de busca", extra={
+            'category': category,
+            'limit': limit
+        })
         
         # Filtrar por categoria se especificada
         filtered_news = MOCK_NEWS
@@ -74,54 +84,59 @@ def get_news():
         # Limitar quantidade de resultados
         filtered_news = filtered_news[:limit]
         
-        return jsonify({
-            'success': True,
-            'data': filtered_news,
-            'total': len(filtered_news)
+        logger.info("Notícias obtidas com sucesso", extra={
+            'total_noticias': len(filtered_news),
+            'categoria_filtro': category
         })
         
+        return ResponseFormatter.success({
+            'dados': filtered_news,
+            'total': len(filtered_news)
+        }, 'Notícias obtidas com sucesso')
+        
     except Exception as e:
-        return jsonify({
-            'success': False,
-            'error': f'Erro ao buscar notícias: {str(e)}'
-        }), 500
+        logger.error("Erro ao buscar notícias", extra={'error': str(e)})
+        return ResponseFormatter.internal_error('Erro ao buscar notícias', str(e))
 
 @news_bp.route('/news/<news_id>', methods=['GET'])
+@log_request(logger)
 def get_news_by_id(news_id):
     """Retorna uma notícia específica pelo ID"""
+    logger.info("Iniciando busca de notícia por ID", extra={'news_id': news_id})
     try:
         news_item = next((news for news in MOCK_NEWS if news['id'] == news_id), None)
         
         if not news_item:
-            return jsonify({
-                'success': False,
-                'error': 'Notícia não encontrada'
-            }), 404
+            logger.warning("Notícia não encontrada", extra={'news_id': news_id})
+            return ResponseFormatter.not_found('Notícia não encontrada')
         
-        return jsonify({
-            'success': True,
-            'data': news_item
+        logger.info("Notícia obtida com sucesso", extra={
+            'news_id': news_id,
+            'news_title': news_item['title'],
+            'news_category': news_item['category']
         })
         
+        return ResponseFormatter.success(news_item, 'Notícia obtida com sucesso')
+        
     except Exception as e:
-        return jsonify({
-            'success': False,
-            'error': f'Erro ao buscar notícia: {str(e)}'
-        }), 500
+        logger.error("Erro ao buscar notícia", extra={'news_id': news_id, 'error': str(e)})
+        return ResponseFormatter.internal_error('Erro ao buscar notícia', str(e))
 
 @news_bp.route('/news/categories', methods=['GET'])
+@log_request(logger)
 def get_news_categories():
     """Retorna lista de categorias disponíveis"""
+    logger.info("Iniciando busca de categorias de notícias")
     try:
         categories = list(set([news['category'] for news in MOCK_NEWS]))
         
-        return jsonify({
-            'success': True,
-            'data': categories
+        logger.info("Categorias obtidas com sucesso", extra={
+            'total_categorias': len(categories),
+            'categorias': categories
         })
         
+        return ResponseFormatter.success(categories, 'Categorias obtidas com sucesso')
+        
     except Exception as e:
-        return jsonify({
-            'success': False,
-            'error': f'Erro ao buscar categorias: {str(e)}'
-        }), 500
+        logger.error("Erro ao buscar categorias", extra={'error': str(e)})
+        return ResponseFormatter.internal_error('Erro ao buscar categorias', str(e))

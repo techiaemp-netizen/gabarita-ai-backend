@@ -1,12 +1,17 @@
-from flask import Blueprint, jsonify
+from flask import Blueprint
+from utils.response_formatter import ResponseFormatter
+from utils.logger import StructuredLogger, log_request
 from datetime import datetime
-from src.routes.questoes import CONTEUDOS_EDITAL
+from routes.questoes import CONTEUDOS_EDITAL
 
 opcoes_bp = Blueprint('opcoes', __name__)
+logger = StructuredLogger('opcoes')
 
 @opcoes_bp.route('/opcoes/cargos-blocos', methods=['GET'])
+@log_request(logger)
 def get_cargos_blocos():
     """Endpoint para obter lista de cargos e blocos disponíveis"""
+    logger.info("Iniciando busca de cargos e blocos")
     try:
         # Extrair cargos e seus blocos do mapeamento CONTEUDOS_EDITAL
         opcoes = {}
@@ -19,37 +24,43 @@ def get_cargos_blocos():
         for blocos in opcoes.values():
             todos_blocos.update(blocos)
         
-        return jsonify({
-            'sucesso': True,
-            'dados': {
+        logger.info("Cargos e blocos obtidos com sucesso", extra={
+            'total_cargos': len(opcoes),
+            'total_blocos': len(todos_blocos)
+        })
+        
+        return ResponseFormatter.success(
+            data={
                 'cargos_blocos': opcoes,
                 'todos_cargos': list(opcoes.keys()),
                 'todos_blocos': sorted(list(todos_blocos))
-            }
-        }), 200
+            },
+            message="Cargos e blocos obtidos com sucesso"
+        )
         
     except Exception as e:
-        print(f"Erro ao obter opções: {str(e)}")
-        return jsonify({
-            'sucesso': False,
-            'erro': 'Erro interno do servidor'
-        }), 500
+        logger.error("Erro ao obter opções", extra={'error': str(e)})
+        return ResponseFormatter.internal_error("Erro interno do servidor")
 
 @opcoes_bp.route('/opcoes/diagnostico', methods=['GET'])
+@log_request(logger)
 def diagnostico_opcoes():
     """Endpoint de diagnóstico para verificar o status das opções"""
+    logger.info("Iniciando diagnóstico das opções")
     try:
         # Verificar se CONTEUDOS_EDITAL está carregado
         if not CONTEUDOS_EDITAL:
-            return jsonify({
-                'sucesso': False,
-                'erro': 'CONTEUDOS_EDITAL não carregado',
-                'diagnostico': {
-                    'conteudos_carregados': False,
-                    'total_cargos': 0,
-                    'total_blocos': 0
+            logger.warning("CONTEUDOS_EDITAL não carregado")
+            return ResponseFormatter.error(
+                error="CONTEUDOS_EDITAL não carregado",
+                data={
+                    'diagnostico': {
+                        'conteudos_carregados': False,
+                        'total_cargos': 0,
+                        'total_blocos': 0
+                    }
                 }
-            }), 500
+            )
         
         # Contar cargos e blocos
         total_cargos = len(CONTEUDOS_EDITAL)
@@ -76,32 +87,44 @@ def diagnostico_opcoes():
         except Exception as e:
             endpoint_blocos_cargos_ok = False
         
-        return jsonify({
-            'sucesso': True,
-            'diagnostico': {
-                'conteudos_carregados': True,
-                'total_cargos': total_cargos,
-                'total_blocos': total_blocos,
-                'endpoint_blocos_cargos_ok': endpoint_blocos_cargos_ok,
-                'primeiros_cargos': list(CONTEUDOS_EDITAL.keys())[:5],
-                'primeiros_blocos': sorted(list(todos_blocos))[:5],
-                'timestamp': str(datetime.now())
-            }
-        }), 200
+        logger.info("Diagnóstico realizado com sucesso", extra={
+            'total_cargos': total_cargos,
+            'total_blocos': total_blocos,
+            'endpoint_blocos_cargos_ok': endpoint_blocos_cargos_ok
+        })
+        
+        return ResponseFormatter.success(
+            data={
+                'diagnostico': {
+                    'conteudos_carregados': True,
+                    'total_cargos': total_cargos,
+                    'total_blocos': total_blocos,
+                    'endpoint_blocos_cargos_ok': endpoint_blocos_cargos_ok,
+                    'primeiros_cargos': list(CONTEUDOS_EDITAL.keys())[:5],
+                    'primeiros_blocos': sorted(list(todos_blocos))[:5],
+                    'timestamp': str(datetime.now())
+                }
+            },
+            message="Diagnóstico realizado com sucesso"
+        )
         
     except Exception as e:
-        return jsonify({
-            'sucesso': False,
-            'erro': f'Erro no diagnóstico: {str(e)}',
-            'diagnostico': {
-                'conteudos_carregados': False,
-                'erro_detalhado': str(e)
+        logger.error("Erro no diagnóstico", extra={'error': str(e)})
+        return ResponseFormatter.internal_error(
+            f"Erro no diagnóstico: {str(e)}",
+            data={
+                'diagnostico': {
+                    'conteudos_carregados': False,
+                    'erro_detalhado': str(e)
+                }
             }
-        }), 500
+        )
 
 @opcoes_bp.route('/opcoes/blocos-cargos', methods=['GET'])
+@log_request(logger)
 def get_blocos_cargos():
     """Endpoint para obter lista de blocos e cargos disponíveis (formato esperado pelo frontend)"""
+    logger.info("Iniciando busca de blocos e cargos (formato frontend)")
     try:
         # Extrair cargos e seus blocos do mapeamento CONTEUDOS_EDITAL
         blocos_cargos = {}
@@ -124,31 +147,31 @@ def get_blocos_cargos():
         todos_blocos = list(blocos_cargos.keys())
         todos_cargos = list(CONTEUDOS_EDITAL.keys())
         
-        print(f"Debug: Encontrados {len(todos_blocos)} blocos e {len(todos_cargos)} cargos")
-        print(f"Debug: Blocos: {todos_blocos[:3]}...")  # Primeiros 3 blocos
-        print(f"Debug: Cargos: {todos_cargos[:3]}...")   # Primeiros 3 cargos
+        logger.info("Blocos e cargos obtidos com sucesso (formato frontend)", extra={
+            'total_blocos': len(todos_blocos),
+            'total_cargos': len(todos_cargos),
+            'primeiros_blocos': todos_blocos[:3],
+            'primeiros_cargos': todos_cargos[:3]
+        })
         
-        return jsonify({
-            'sucesso': True,
-            'dados': {
+        return ResponseFormatter.success(
+            data={
                 'blocos_cargos': blocos_cargos,
                 'todos_blocos': sorted(todos_blocos),
                 'todos_cargos': sorted(todos_cargos)
-            }
-        }), 200
+            },
+            message="Blocos e cargos obtidos com sucesso"
+        )
         
     except Exception as e:
-        print(f"Erro ao obter opções blocos-cargos: {str(e)}")
-        import traceback
-        traceback.print_exc()
-        return jsonify({
-            'sucesso': False,
-            'erro': 'Erro interno do servidor'
-        }), 500
+        logger.error("Erro ao obter opções blocos-cargos", extra={'error': str(e)})
+        return ResponseFormatter.internal_error("Erro interno do servidor")
 
 @opcoes_bp.route('/opcoes/cargos/<bloco>', methods=['GET'])
+@log_request(logger)
 def get_cargos_por_bloco(bloco):
     """Endpoint para obter cargos disponíveis para um bloco específico"""
+    logger.info("Iniciando busca de cargos por bloco", extra={'bloco': bloco})
     try:
         cargos = []
         for cargo, blocos_data in CONTEUDOS_EDITAL.items():
@@ -156,49 +179,53 @@ def get_cargos_por_bloco(bloco):
                 cargos.append(cargo)
         
         if not cargos:
-            return jsonify({
-                'sucesso': False,
-                'erro': 'Bloco não encontrado'
-            }), 404
+            logger.warning("Bloco não encontrado", extra={'bloco': bloco})
+            return ResponseFormatter.not_found("Bloco não encontrado")
         
-        return jsonify({
-            'sucesso': True,
-            'dados': {
+        logger.info("Cargos obtidos com sucesso para bloco", extra={
+            'bloco': bloco,
+            'total_cargos': len(cargos),
+            'cargos': cargos
+        })
+        
+        return ResponseFormatter.success(
+            data={
                 'bloco': bloco,
                 'cargos': cargos
-            }
-        }), 200
+            },
+            message="Cargos obtidos com sucesso"
+        )
         
     except Exception as e:
-        print(f"Erro ao obter cargos para bloco {bloco}: {str(e)}")
-        return jsonify({
-            'sucesso': False,
-            'erro': 'Erro interno do servidor'
-        }), 500
+        logger.error("Erro ao obter cargos para bloco", extra={'bloco': bloco, 'error': str(e)})
+        return ResponseFormatter.internal_error("Erro interno do servidor")
 
 @opcoes_bp.route('/opcoes/blocos/<cargo>', methods=['GET'])
+@log_request(logger)
 def get_blocos_por_cargo(cargo):
     """Endpoint para obter blocos disponíveis para um cargo específico"""
+    logger.info("Iniciando busca de blocos por cargo", extra={'cargo': cargo})
     try:
         blocos = list(CONTEUDOS_EDITAL.get(cargo, {}).keys())
         
         if not blocos:
-            return jsonify({
-                'sucesso': False,
-                'erro': 'Cargo não encontrado'
-            }), 404
+            logger.warning("Cargo não encontrado", extra={'cargo': cargo})
+            return ResponseFormatter.not_found("Cargo não encontrado")
         
-        return jsonify({
-            'sucesso': True,
-            'dados': {
+        logger.info("Blocos obtidos com sucesso para cargo", extra={
+            'cargo': cargo,
+            'total_blocos': len(blocos),
+            'blocos': blocos
+        })
+        
+        return ResponseFormatter.success(
+            data={
                 'cargo': cargo,
                 'blocos': blocos
-            }
-        }), 200
+            },
+            message="Blocos obtidos com sucesso"
+        )
         
     except Exception as e:
-        print(f"Erro ao obter blocos para cargo {cargo}: {str(e)}")
-        return jsonify({
-            'sucesso': False,
-            'erro': 'Erro interno do servidor'
-        }), 500
+        logger.error("Erro ao obter blocos para cargo", extra={'cargo': cargo, 'error': str(e)})
+        return ResponseFormatter.internal_error("Erro interno do servidor")

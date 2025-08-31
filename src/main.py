@@ -1,39 +1,49 @@
-from flask import Flask, jsonify, request
+from flask import Flask, request
 from flask_cors import CORS
 import os
 from datetime import datetime
-from .services.chatgpt_service import chatgpt_service
-from .routes.questoes import CONTEUDOS_EDITAL
-from .routes.signup import signup_bp
-from .routes.auth import auth_bp
-from .routes.questoes import questoes_bp
-from .routes.planos import planos_bp
-from .routes.jogos import jogos_bp
-from .routes.news import news_bp
-from .routes.opcoes import opcoes_bp
-from .config.firebase_config import firebase_config
+from services.chatgpt_service import chatgpt_service
+from routes.questoes import CONTEUDOS_EDITAL
+from utils.response_formatter import ResponseFormatter
+from utils.logger import StructuredLogger, log_request
+from routes.auth import auth_bp
+from routes.questoes import questoes_bp
+from routes.planos import planos_bp
+from routes.jogos import jogos_bp
+from routes.news import news_bp
+from routes.opcoes import opcoes_bp
+from routes.usuarios import usuarios_bp
+from routes.payments import payments_bp
+from config.firebase_config import firebase_config
 
 app = Flask(__name__)
+
+# Initialize structured logger
+logger = StructuredLogger(__name__)
+
 # Configuração CORS específica para o frontend do Vercel
 CORS(app, 
-     origins=['https://gabarita-ai-frontend-pied.vercel.app', 'http://localhost:3000', '*'],
+     origins=['https://gabarita-ai-frontend-pied.vercel.app', 'http://localhost:3000'],
      allow_headers=['Content-Type', 'Authorization', 'Accept', 'Access-Control-Request-Method', 'Access-Control-Request-Headers'],
      methods=['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
      supports_credentials=True)  # Habilitar credentials para autenticação
 
-# Registrar blueprints
-app.register_blueprint(signup_bp, url_prefix='/api/auth')
+# Registrar blueprints com prefixo /api padronizado
 app.register_blueprint(auth_bp, url_prefix='/api/auth')
 app.register_blueprint(questoes_bp, url_prefix='/api/questoes')
-app.register_blueprint(planos_bp, url_prefix='/api')
+app.register_blueprint(planos_bp, url_prefix='/api/planos')
 app.register_blueprint(jogos_bp, url_prefix='/api/jogos')
-app.register_blueprint(news_bp, url_prefix='/api')
-app.register_blueprint(opcoes_bp, url_prefix='/api')
+app.register_blueprint(news_bp, url_prefix='/api/noticias')
+app.register_blueprint(opcoes_bp, url_prefix='/api/opcoes')
+app.register_blueprint(usuarios_bp, url_prefix='/api/usuarios')
+app.register_blueprint(payments_bp, url_prefix='/api/payments')
 
 @app.route('/', methods=['GET'])
+@log_request(logger)
 def root():
     """Rota raiz da API"""
-    return jsonify({
+    logger.info("API root endpoint accessed")
+    return ResponseFormatter.success({
         'message': 'Gabarita.AI Backend API',
         'version': '1.0.0',
         'status': 'online',
@@ -41,44 +51,50 @@ def root():
             'health': '/health',
             'auth': '/api/auth/*',
             'questoes': '/api/questoes/*',
-            'planos': '/api/planos',
+            'planos': '/api/planos/*',
             'jogos': '/api/jogos/*',
-            'opcoes': '/api/opcoes/*'
+            'opcoes': '/api/opcoes/*',
+            'usuarios': '/api/usuarios/*',
+            'noticias': '/api/noticias/*',
+            'payments': '/api/payments/*'
         }
     })
 
 @app.route('/health', methods=['GET'])
+@log_request(logger)
 def health_check():
     """Endpoint de verificação de saúde da API"""
-    return jsonify({
+    logger.info("Health check endpoint accessed")
+    return ResponseFormatter.success({
         'status': 'healthy',
-        'message': 'API funcionando corretamente',
         'timestamp': str(datetime.now())
-    })
+    }, 'API funcionando corretamente')
 
 @app.route('/api/test', methods=['GET', 'OPTIONS'])
+@log_request(logger)
 def test_endpoint():
     """Endpoint de teste público para verificar conectividade"""
     if request.method == 'OPTIONS':
+        logger.debug("CORS preflight request received for test endpoint")
         # Resposta para preflight CORS
-        response = jsonify({'status': 'ok'})
+        response = ResponseFormatter.success({'status': 'ok'})
         response.headers.add('Access-Control-Allow-Origin', '*')
         response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
         response.headers.add('Access-Control-Allow-Methods', 'GET,POST,PUT,DELETE,OPTIONS')
         return response
     
-    return jsonify({
-        'status': 'success',
-        'message': 'Endpoint de teste funcionando',
+    logger.info("Test endpoint accessed successfully")
+    return ResponseFormatter.success({
+        'status': 'sucesso',
         'timestamp': str(datetime.now()),
         'cors_enabled': True
-    })
+    }, 'Endpoint de teste funcionando')
 
 @app.route('/api/opcoes/test', methods=['GET', 'OPTIONS'])
 def test_opcoes():
     """Endpoint de teste específico para opções"""
     if request.method == 'OPTIONS':
-        response = jsonify({'status': 'ok'})
+        response = ResponseFormatter.success({'status': 'ok'})
         response.headers.add('Access-Control-Allow-Origin', '*')
         response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
         response.headers.add('Access-Control-Allow-Methods', 'GET,POST,PUT,DELETE,OPTIONS')
@@ -88,43 +104,26 @@ def test_opcoes():
         from .routes.questoes import CONTEUDOS_EDITAL
         total_cargos = len(CONTEUDOS_EDITAL) if CONTEUDOS_EDITAL else 0
         
-        return jsonify({
-            'status': 'success',
-            'message': 'Teste de opções funcionando',
+        return ResponseFormatter.success({
+            'status': 'sucesso',
             'total_cargos': total_cargos,
             'conteudos_carregados': bool(CONTEUDOS_EDITAL),
             'timestamp': str(datetime.now())
-        })
+        }, 'Teste de opções funcionando')
     except Exception as e:
-        return jsonify({
-            'status': 'error',
-            'message': f'Erro no teste: {str(e)}',
-            'timestamp': str(datetime.now())
-        }), 500
+        return ResponseFormatter.internal_error(f'Erro no teste: {str(e)}')
 
 @app.route('/api/health', methods=['GET'])
+@log_request(logger)
 def api_health():
-    return jsonify({
+    logger.info("API health endpoint accessed")
+    return ResponseFormatter.success({
         'status': 'healthy',
         'timestamp': datetime.now().isoformat(),
         'version': '1.0.0'
     })
 
-@app.route('/api/auth/login', methods=['POST'])
-def login():
-    data = request.get_json()
-    # Simulação de login simples
-    return jsonify({
-        'success': True,
-        'user': {
-            'id': '1',
-            'nome': data.get('email', 'Usuário'),
-            'email': data.get('email'),
-            'cargo': 'Enfermeiro',
-            'bloco': 'Saúde'
-        },
-        'token': 'demo_token_123'
-    })
+
 
 @app.route('/api/questoes/gerar', methods=['POST'])
 def gerar_questao_endpoint():
@@ -151,7 +150,7 @@ def gerar_questao_endpoint():
     
     if not conteudo_edital:
         print("❌ Cargo ou bloco não encontrado")
-        return jsonify({'erro': 'Cargo ou bloco não encontrado'}), 404
+        return ResponseFormatter.not_found('Cargo ou bloco não encontrado')
     
     # Usar a função real de geração de questões
     try:
@@ -172,7 +171,7 @@ def gerar_questao_endpoint():
                 'dificuldade': questao_gerada.get('dificuldade', 'medio'),
                 'tema': questao_gerada.get('tema', conteudo_edital[0] if conteudo_edital else 'Geral')
             }
-            return jsonify({'questao': questao_frontend})
+            return ResponseFormatter.success({'questao': questao_frontend})
         else:
             print("❌ ChatGPT retornou None")
             raise Exception("ChatGPT não retornou questão válida")
@@ -202,7 +201,7 @@ def gerar_questao_endpoint():
         
         print(f"✅ Questão fallback gerada: {questao_personalizada['enunciado'][:50]}...")
         
-        return jsonify({
+        return ResponseFormatter.success({
             'questao': questao_personalizada
         })
 
@@ -211,8 +210,8 @@ def responder_questao(questao_id):
     data = request.get_json()
     resposta = data.get('resposta')
     
-    return jsonify({
-        'success': True,
+    return ResponseFormatter.success({
+        'sucesso': True,
         'correto': resposta == 'C',
         'gabarito': 'C',
         'explicacao': 'Explicação detalhada da resposta'
@@ -264,8 +263,8 @@ def obter_explicacao_perplexity():
         
         if explicacao_detalhada:
             print(f"✅ Explicação gerada com sucesso: {explicacao_detalhada[:100]}...")
-            return jsonify({
-                'success': True,
+            return ResponseFormatter.success({
+                'sucesso': True,
                 'explicacao': explicacao_detalhada,
                 'fontes': [
                     'Constituição Federal de 1988',
@@ -292,8 +291,8 @@ def obter_explicacao_perplexity():
         Continue estudando e pratique mais questões sobre este tema!
         """
         
-        return jsonify({
-            'success': True,
+        return ResponseFormatter.success({
+            'sucesso': True,
             'explicacao': explicacao_fallback,
             'fontes': [
                 'Material de estudo recomendado',
@@ -311,7 +310,7 @@ def submit_simulado():
         respostas = data.get('respostas', [])
         
         if not usuario_id or not respostas:
-            return jsonify({'erro': 'Dados obrigatórios não fornecidos'}), 400
+            return ResponseFormatter.bad_request('Dados obrigatórios não fornecidos')
         
         # Calcular estatísticas
         total_questoes = len(respostas)
@@ -339,15 +338,16 @@ def submit_simulado():
             'status': 'concluido'
         }
         
-        return jsonify({
-            'success': True,
-            'resultado': resultado,
-            'message': f'Simulado concluído! Você acertou {acertos} de {total_questoes} questões ({taxa_acerto:.1f}%)'
-        })
+        return ResponseFormatter.success(
+            data={
+                'resultado': resultado
+            },
+            message=f'Simulado concluído! Você acertou {acertos} de {total_questoes} questões ({taxa_acerto:.1f}%)'
+        )
         
     except Exception as e:
         print(f"Erro ao processar simulado: {e}")
-        return jsonify({'erro': 'Erro interno do servidor'}), 500
+        return ResponseFormatter.internal_error('Erro interno do servidor')
 
 @app.route('/api/performance', methods=['GET'])
 def get_performance():
@@ -377,10 +377,10 @@ def get_performance():
                 {'materia': 'Saúde Pública', 'total': 40, 'acertos': 33, 'taxa': 82.5}
             ]
         }
-        return jsonify(performance_data)
+        return ResponseFormatter.success(performance_data)
     except Exception as e:
         print(f"Erro ao obter performance: {e}")
-        return jsonify({'erro': 'Erro interno do servidor'}), 500
+        return ResponseFormatter.internal_error('Erro interno do servidor')
 
 @app.route('/api/ranking', methods=['GET'])
 def get_ranking():
@@ -397,10 +397,10 @@ def get_ranking():
             'sua_posicao': 4,
             'total_usuarios': 1247
         }
-        return jsonify(ranking_data)
+        return ResponseFormatter.success(ranking_data)
     except Exception as e:
         print(f"Erro ao obter ranking: {e}")
-        return jsonify({'erro': 'Erro interno do servidor'}), 500
+        return ResponseFormatter.internal_error('Erro interno do servidor')
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))

@@ -1,21 +1,28 @@
 """
 Rotas para geração e gerenciamento de questões
 """
-from flask import Blueprint, request, jsonify
-from ..services.chatgpt_service import chatgpt_service
-from ..services.perplexity_service import perplexity_service
-from ..config.firebase_config import firebase_config
+from flask import Blueprint, request
+from utils.response_formatter import ResponseFormatter
+from services.chatgpt_service import chatgpt_service
+from services.perplexity_service import perplexity_service
+from config.firebase_config import firebase_config
+from utils.response_formatter import ResponseFormatter
+from utils.logger import StructuredLogger, log_request, log_database_operation
 from datetime import datetime
 import uuid
 import random
 
 questoes_bp = Blueprint('questoes', __name__)
 
+# Initialize structured logger
+logger = StructuredLogger(__name__)
+
 # ========== SISTEMA DE ROLETA DE QUESTÕES ==========
 
 def _buscar_questao_do_pool(usuario_id, cargo, bloco, tipo_conhecimento, modo_foco, materia_foco):
     """Busca uma questão disponível no pool que o usuário ainda não respondeu"""
     try:
+        logger.info("Buscando questão no pool", extra={'usuario_id': usuario_id, 'cargo': cargo, 'bloco': bloco, 'tipo_conhecimento': tipo_conhecimento})
         print(f"🎯 Buscando questão no pool para usuário {usuario_id}")
         db = firebase_config.get_firestore_client()
         
@@ -74,9 +81,16 @@ def _buscar_questao_do_pool(usuario_id, cargo, bloco, tipo_conhecimento, modo_fo
         print(f"❌ Erro ao buscar questão no pool: {e}")
         return None
 
+@log_database_operation(StructuredLogger(__name__), "salvar_questao_pool")
 def _salvar_questao_no_pool(questao_completa, cargo, bloco, tipo_conhecimento, criado_por):
     """Salva uma nova questão no pool para reutilização"""
     try:
+        logger.info("Salvando questão no pool", extra={
+            'cargo': cargo,
+            'bloco': bloco,
+            'tipo_conhecimento': tipo_conhecimento,
+            'criado_por': criado_por
+        })
         print(f"💾 Salvando questão no pool")
         db = firebase_config.get_firestore_client()
         
@@ -101,16 +115,34 @@ def _salvar_questao_no_pool(questao_completa, cargo, bloco, tipo_conhecimento, c
         pool_ref = db.collection('questoes_pool')
         doc_ref = pool_ref.add(questao_pool)
         
+        logger.info("Questão salva no pool com sucesso", extra={
+            'questao_id': doc_ref[1].id,
+            'cargo': cargo,
+            'bloco': bloco
+        })
         print(f"✅ Questão salva no pool com ID: {doc_ref[1].id}")
         return doc_ref[1].id
         
     except Exception as e:
+        logger.error("Erro ao salvar questão no pool", extra={
+            'error': str(e),
+            'cargo': cargo,
+            'bloco': bloco
+        })
         print(f"❌ Erro ao salvar questão no pool: {e}")
         return None
 
+@log_database_operation(StructuredLogger(__name__), "registrar_questao_respondida")
 def _registrar_questao_respondida(usuario_id, questao_id, respondida=False, acertou=False, tempo_resposta=None):
     """Registra que o usuário visualizou/respondeu uma questão"""
     try:
+        logger.info("Registrando questão respondida", extra={
+            'usuario_id': usuario_id,
+            'questao_id': questao_id,
+            'respondida': respondida,
+            'acertou': acertou,
+            'tempo_resposta': tempo_resposta
+        })
         print(f"📊 Registrando questão {questao_id} para usuário {usuario_id}")
         db = firebase_config.get_firestore_client()
         
@@ -127,20 +159,33 @@ def _registrar_questao_respondida(usuario_id, questao_id, respondida=False, acer
         respondidas_ref = db.collection('questoes_respondidas')
         respondidas_ref.add(questao_respondida)
         
+        logger.info("Questão registrada com sucesso", extra={
+            'usuario_id': usuario_id,
+            'questao_id': questao_id,
+            'respondida': respondida,
+            'acertou': acertou
+        })
         print(f"✅ Questão registrada como visualizada")
         return True
         
     except Exception as e:
+        logger.error("Erro ao registrar questão respondida", extra={
+            'error': str(e),
+            'usuario_id': usuario_id,
+            'questao_id': questao_id
+        })
         print(f"❌ Erro ao registrar questão respondida: {e}")
         return False
 
 # ========== FIM DO SISTEMA DE ROLETA ==========
 
 @questoes_bp.route('/responder', methods=['POST'])
+@log_request(logger)
 def responder_questao():
     """
     Rota para registrar resposta de questão e atualizar estatísticas do usuário
     """
+    logger.info("Iniciando processo de resposta de questão")
     try:
         data = request.get_json()
         
@@ -148,9 +193,7 @@ def responder_questao():
         required_fields = ['questao_id', 'usuario_id', 'alternativa_escolhida']
         for field in required_fields:
             if field not in data:
-                return jsonify({
-                    'erro': f'Campo obrigatório ausente: {field}'
-                }), 400
+                return ResponseFormatter.bad_request(f'Campo obrigatório ausente: {field}')
         
         questao_id = data['questao_id']
         usuario_id = data['usuario_id']
@@ -241,28 +284,38 @@ def responder_questao():
         except Exception as e:
             print(f"Erro ao gerar explicação: {e}")
         
-        return jsonify({
-            'sucesso': True,
+        logger.info("Resposta da questão processada com sucesso", extra={
+            'questao_id': questao_id,
+            'usuario_id': usuario_id,
+            'acertou': acertou,
+            'tempo_resposta': tempo_resposta
+        })
+        
+        return ResponseFormatter.success({
             'acertou': acertou,
             'gabarito': gabarito_simulado,
             'explicacao': explicacao,
             'alternativa_escolhida': alternativa_escolhida,
             'tempo_resposta': tempo_resposta,
             'estatisticas': novas_stats if 'novas_stats' in locals() else None
-        })
+        }, 'Resposta processada com sucesso')
         
     except Exception as e:
+        logger.error("Erro ao processar resposta da questão", extra={
+            'questao_id': data.get('questao_id'),
+            'usuario_id': data.get('usuario_id'),
+            'error': str(e)
+        })
         print(f"Erro ao processar resposta: {e}")
-        return jsonify({
-            'erro': 'Erro interno do servidor',
-            'detalhes': str(e)
-        }), 500
+        return ResponseFormatter.internal_error('Erro ao processar resposta', str(e))
 
 @questoes_bp.route('/estatisticas/<usuario_id>', methods=['GET'])
+@log_request(logger)
 def buscar_estatisticas(usuario_id):
     """
     Rota para buscar estatísticas do usuário
     """
+    logger.info("Iniciando busca de estatísticas do usuário", extra={"usuario_id": usuario_id})
     try:
         if firebase_config.is_configured():
             try:
@@ -301,10 +354,13 @@ def buscar_estatisticas(usuario_id):
                         ]
                     }
                     
-                    return jsonify({
-                        'sucesso': True,
-                        'estatisticas': estatisticas
+                    logger.info("Estatísticas obtidas com sucesso do Firebase", extra={
+                        "usuario_id": usuario_id,
+                        "total_questoes": estatisticas.get('total_questoes', 0),
+                        "taxa_acertos": estatisticas.get('taxa_acertos', 0),
+                        "fonte_dados": "firebase"
                     })
+                    return ResponseFormatter.success(estatisticas, 'Estatísticas obtidas com sucesso')
                     
             except Exception as e:
                 print(f"Erro ao buscar do Firestore: {e}")
@@ -331,17 +387,20 @@ def buscar_estatisticas(usuario_id):
             ]
         }
         
-        return jsonify({
-            'sucesso': True,
-            'estatisticas': estatisticas_simuladas
+        logger.info("Estatísticas simuladas geradas com sucesso", extra={
+            "usuario_id": usuario_id,
+            "total_questoes": estatisticas_simuladas.get('total_questoes', 0),
+            "taxa_acertos": estatisticas_simuladas.get('taxa_acertos', 0),
+            "fonte_dados": "simulado"
         })
+        return ResponseFormatter.success(estatisticas_simuladas, 'Estatísticas simuladas obtidas com sucesso')
         
     except Exception as e:
-        print(f"Erro ao buscar estatísticas: {e}")
-        return jsonify({
-            'erro': 'Erro interno do servidor',
-            'detalhes': str(e)
-        }), 500
+        logger.error("Erro ao buscar estatísticas do usuário", extra={
+            "usuario_id": usuario_id,
+            "error": str(e)
+        })
+        return ResponseFormatter.internal_error('Erro ao buscar estatísticas', str(e))
 
 # Mapeamento de conteúdos por cargo e bloco com flag de conhecimentos
 CONTEUDOS_EDITAL = {
@@ -920,12 +979,13 @@ CONTEUDOS_EDITAL = {
 }
 
 @questoes_bp.route('/gerar', methods=['POST'])
+@log_request(logger)
 def gerar_questao():
     """Gera uma nova questão personalizada para o usuário"""
     try:
-        print("🔥 Requisição recebida na API de geração de questões")
+        logger.info("Requisição recebida na API de geração de questões")
         data = request.get_json()
-        print(f"📋 Dados recebidos: {data}")
+        logger.info("Dados recebidos para geração de questão", extra={"data": data})
         
         usuario_id = data.get('usuario_id')
         cargo = data.get('cargo')
@@ -935,28 +995,41 @@ def gerar_questao():
         modo_foco = data.get('modo_foco', False)
         materia_foco = data.get('materia_foco', None)
         
-        print(f"👤 Usuario ID: {usuario_id}")
-        print(f"💼 Cargo: {cargo}")
-        print(f"📚 Bloco: {bloco}")
+        logger.info("Parâmetros de geração de questão", extra={
+            "usuario_id": usuario_id,
+            "cargo": cargo,
+            "bloco": bloco,
+            "tipo_questao": tipo_questao,
+            "tipo_conhecimento": tipo_conhecimento,
+            "modo_foco": modo_foco,
+            "materia_foco": materia_foco
+        })
         
         if not all([usuario_id, cargo, bloco]):
-            print("❌ Dados obrigatórios faltando")
-            return jsonify({'erro': 'Dados do usuário são obrigatórios'}), 400
+            logger.warning("Dados obrigatórios faltando para geração de questão", extra={
+                "usuario_id": usuario_id,
+                "cargo": cargo,
+                "bloco": bloco
+            })
+            return ResponseFormatter.bad_request('Dados do usuário são obrigatórios')
         
         # Obter conteúdo específico do edital baseado no tipo de conhecimento
         if modo_foco and materia_foco:
             conteudo_edital = [materia_foco]
-            print(f"📖 Modo foco ativado para matéria: {materia_foco}")
+            logger.info("Modo foco ativado", extra={"materia_foco": materia_foco})
         else:
             conteudo_edital = _obter_conteudo_edital(cargo, bloco, tipo_conhecimento)
-            print(f"📖 Conteúdo do edital ({tipo_conhecimento}): {conteudo_edital}")
+            logger.info("Conteúdo do edital obtido", extra={
+                "tipo_conhecimento": tipo_conhecimento,
+                "conteudo_count": len(conteudo_edital) if conteudo_edital else 0
+            })
         
         if not conteudo_edital:
-            print("❌ Cargo ou bloco não encontrado")
-            return jsonify({'erro': 'Cargo ou bloco não encontrado'}), 404
+            logger.warning("Cargo ou bloco não encontrado", extra={"cargo": cargo, "bloco": bloco})
+            return ResponseFormatter.not_found('Cargo ou bloco não encontrado')
         
         # ========== IMPLEMENTAÇÃO DA ROLETA ==========
-        print("🎯 SISTEMA DE ROLETA ATIVADO")
+        logger.info("Sistema de roleta ativado para geração de questão")
         
         # 1. Primeiro, tentar buscar questão do pool
         questao_do_pool = _buscar_questao_do_pool(
@@ -974,7 +1047,11 @@ def gerar_questao():
         
         if questao_do_pool:
             # Questão encontrada no pool
-            print("🎲 Usando questão do POOL (economia de tokens!)")
+            logger.info("Questão encontrada no pool - economia de tokens", extra={
+                "questao_id": questao_do_pool['id'],
+                "tema": questao_do_pool.get('tema'),
+                "dificuldade": questao_do_pool.get('dificuldade')
+            })
             questao_id = questao_do_pool['id']
             questao_completa = {
                 'id': questao_id,
@@ -989,18 +1066,23 @@ def gerar_questao():
             origem_questao = "pool"
         else:
             # 2. Se não encontrou no pool, gerar nova questão com ChatGPT
-            print("🤖 Gerando NOVA questão com ChatGPT (será adicionada ao pool)")
-            print(f"DEBUG: Parâmetros - cargo={cargo}, bloco={bloco}, tipo={tipo_questao}")
-            print(f"DEBUG: Conteúdo edital: {conteudo_edital}")
+            logger.info("Gerando nova questão com ChatGPT", extra={
+                "cargo": cargo,
+                "bloco": bloco,
+                "tipo_questao": tipo_questao,
+                "conteudo_count": len(conteudo_edital)
+            })
             try:
-                print("DEBUG: Chamando chatgpt_service.gerar_questao...")
+                logger.info("Chamando serviço ChatGPT para geração de questão")
                 questao_ia = chatgpt_service.gerar_questao(
                     cargo=cargo,
                     conteudo_edital=conteudo_edital,
                     tipo_questao=tipo_questao
                 )
                 
-                print(f"DEBUG: Resposta do ChatGPT: {questao_ia}")
+                logger.info("Resposta recebida do ChatGPT", extra={
+                    "questao_gerada": questao_ia is not None
+                })
                 
                 if questao_ia:
                     questao_id = str(uuid.uuid4())
@@ -1031,18 +1113,28 @@ def gerar_questao():
                         questao_id = pool_id  # Usar ID do pool
                         questao_completa['id'] = pool_id
                     
-                    print(f"✅ Questão IA gerada e salva no pool: {questao_completa['questao'][:100]}...")
+                    logger.info("Questão IA gerada e salva no pool", extra={
+                        "questao_preview": questao_completa['questao'][:100],
+                        "questao_id": questao_id,
+                        "pool_id": pool_id
+                    })
                     origem_questao = "chatgpt_nova"
                 else:
-                    print("DEBUG: ChatGPT retornou None ou vazio")
+                    logger.warning("ChatGPT retornou resposta vazia")
                     raise Exception("ChatGPT não retornou questão válida")
                     
             except Exception as e:
-                print(f"❌ Erro ao gerar questão com IA: {e}")
-                print(f"DEBUG: Traceback completo:")
+                logger.error("Erro ao gerar questão com IA", extra={
+                    "error": str(e),
+                    "cargo": cargo,
+                    "bloco": bloco,
+                    "tipo_conhecimento": tipo_conhecimento
+                })
                 import traceback
-                traceback.print_exc()
-                print("🔄 Usando questão de fallback...")
+                logger.debug("Traceback completo", extra={
+                    "traceback": traceback.format_exc()
+                })
+                logger.info("Usando questão de fallback")
                 
                 # Fallback: questão de exemplo
                 questao_id = str(uuid.uuid4())
@@ -1087,23 +1179,36 @@ def gerar_questao():
             'dificuldade': questao_completa['dificuldade']
         }
         
-        return jsonify(questao_frontend)
+        logger.info("Questão gerada com sucesso", extra={
+            "questao_id": questao_id,
+            "usuario_id": usuario_id,
+            "cargo": cargo,
+            "bloco": bloco,
+            "origem_questao": origem_questao,
+            "tema": questao_completa['tema'],
+            "dificuldade": questao_completa['dificuldade']
+        })
+        
+        return ResponseFormatter.success(questao_frontend)
         
     except Exception as e:
         print(f"❌ Erro ao gerar questão: {e}")
         import traceback
         traceback.print_exc()
-        return jsonify({'erro': 'Erro interno do servidor'}), 500
+        return ResponseFormatter.internal_error('Erro interno do servidor')
 
 @questoes_bp.route('/materias-foco/<cargo>/<bloco>', methods=['GET'])
+@log_request(logger)
 def obter_materias_foco(cargo, bloco):
     """Obtém todas as matérias disponíveis para o modo foco"""
+    logger.info("Iniciando obtenção de matérias para modo foco", extra={'cargo': cargo, 'bloco': bloco})
     try:
         # Normalizar o nome do bloco para compatibilidade
         bloco_normalizado = bloco
         if ':' in bloco:
             bloco_normalizado = bloco.split(':')[0].strip()
         
+        logger.info("Buscando conteúdos do edital", extra={'cargo': cargo, 'bloco_normalizado': bloco_normalizado})
         conteudos_bloco = CONTEUDOS_EDITAL.get(cargo, {}).get(bloco_normalizado, {})
         
         materias = []
@@ -1132,29 +1237,37 @@ def obter_materias_foco(cargo, bloco):
                         'tipo': 'conhecimentos_especificos'
                     })
         
-        return jsonify({
-            'sucesso': True,
-            'materias': materias
+        logger.info("Matérias obtidas com sucesso para modo foco", extra={
+            'cargo': cargo,
+            'bloco': bloco,
+            'total_materias': len(materias),
+            'tipos_conhecimento': list(set([m['tipo'] for m in materias]))
         })
         
+        return ResponseFormatter.success(materias, 'Matérias obtidas com sucesso')
+        
     except Exception as e:
-        print(f"Erro ao obter matérias para modo foco: {e}")
-        return jsonify({'erro': 'Erro interno do servidor'}), 500
+        logger.error("Erro ao obter matérias para modo foco", extra={'cargo': cargo, 'bloco': bloco, 'error': str(e)})
+        return ResponseFormatter.internal_error('Erro interno do servidor')
 
 # Função duplicada removida - usando apenas a primeira definição
 
 @questoes_bp.route('/historico/<usuario_id>', methods=['GET'])
+@log_request(logger)
 def obter_historico(usuario_id):
     """Obtém o histórico de questões do usuário usando o sistema de roleta"""
+    logger.info("Iniciando obtenção de histórico de questões", extra={'usuario_id': usuario_id})
     try:
         # Parâmetros de paginação
         limite = int(request.args.get('limite', 20))
         offset = int(request.args.get('offset', 0))
+        logger.info("Parâmetros de paginação definidos", extra={'usuario_id': usuario_id, 'limite': limite, 'offset': offset})
         
         questoes = []
         
         if firebase_config.is_configured():
             try:
+                logger.info("Firebase configurado, buscando histórico no Firestore", extra={'usuario_id': usuario_id})
                 from firebase_admin import firestore
                 db = firestore.client()
                 
@@ -1199,25 +1312,36 @@ def obter_historico(usuario_id):
                         questoes.append(questao_completa)
                     
             except Exception as e:
-                print(f"Erro ao buscar histórico no Firestore: {e}")
+                logger.error("Erro ao buscar histórico no Firestore", extra={'usuario_id': usuario_id, 'error': str(e)})
         
         # Se não há questões no Firestore, retornar dados simulados
         if not questoes:
+            logger.info("Nenhuma questão encontrada no Firestore, gerando dados simulados", extra={'usuario_id': usuario_id})
             questoes = _gerar_historico_simulado(usuario_id, limite)
         
-        return jsonify({
-            'sucesso': True,
-            'questoes': questoes,
-            'total': len(questoes)
+        logger.info("Histórico obtido com sucesso", extra={
+            'usuario_id': usuario_id,
+            'total_questoes': len(questoes),
+            'fonte_dados': 'firestore' if questoes and not any('simulado' in str(q) for q in questoes) else 'simulado'
         })
         
+        return ResponseFormatter.success({
+            'questoes': questoes,
+            'total': len(questoes)
+        }, 'Histórico obtido com sucesso')
+        
     except Exception as e:
-        print(f"Erro ao obter histórico: {e}")
-        return jsonify({'erro': 'Erro interno do servidor'}), 500
+        logger.error("Erro ao obter histórico", extra={'usuario_id': usuario_id, 'error': str(e)})
+        return ResponseFormatter.internal_error('Erro interno do servidor')
 
 @questoes_bp.route('/estatisticas/<usuario_id>', methods=['GET'])
+@log_request(logger)
 def obter_estatisticas(usuario_id):
     """Obtém estatísticas de desempenho do usuário"""
+    logger.info("Iniciando busca de estatísticas do usuário", extra={
+        'usuario_id': usuario_id
+    })
+    
     try:
         estatisticas = {
             'total_questoes': 0,
@@ -1229,6 +1353,10 @@ def obter_estatisticas(usuario_id):
         }
         
         if firebase_config.is_connected():
+            logger.info("Firebase configurado, buscando estatísticas no Firestore", extra={
+                'usuario_id': usuario_id
+            })
+            
             try:
                 db = firebase_config.get_db()
                 
@@ -1242,30 +1370,60 @@ def obter_estatisticas(usuario_id):
                 
                 if questoes:
                     estatisticas = _calcular_estatisticas(questoes)
+                    logger.info("Estatísticas calculadas a partir do Firestore", extra={
+                        'usuario_id': usuario_id,
+                        'total_questoes': len(questoes)
+                    })
                     
             except Exception as e:
-                print(f"Erro ao buscar estatísticas no Firestore: {e}")
+                logger.error("Erro ao buscar estatísticas no Firestore", extra={
+                    'usuario_id': usuario_id,
+                    'error': str(e)
+                })
         
         # Se não há dados no Firestore, retornar estatísticas simuladas
         if estatisticas['total_questoes'] == 0:
+            logger.info("Gerando estatísticas simuladas", extra={
+                'usuario_id': usuario_id,
+                'motivo': 'sem_dados_firestore'
+            })
             estatisticas = _gerar_estatisticas_simuladas()
         
-        return jsonify({
-            'sucesso': True,
-            'estatisticas': estatisticas
+        logger.info("Estatísticas obtidas com sucesso", extra={
+            'usuario_id': usuario_id,
+            'total_questoes': estatisticas['total_questoes'],
+            'taxa_acertos': estatisticas['taxa_acertos']
         })
         
+        return ResponseFormatter.success(estatisticas, 'Estatísticas obtidas com sucesso')
+        
     except Exception as e:
-        print(f"Erro ao obter estatísticas: {e}")
-        return jsonify({'erro': 'Erro interno do servidor'}), 500
+        logger.error("Erro ao obter estatísticas do usuário", extra={
+            'usuario_id': usuario_id,
+            'error': str(e)
+        })
+        return ResponseFormatter.internal_error('Erro interno do servidor')
 
 @questoes_bp.route('/materias/<cargo>/<bloco>', methods=['GET'])
+@log_request(logger)
 def obter_materias_por_cargo_bloco(cargo, bloco):
     """Obtém as matérias específicas baseadas no cargo e bloco do usuário"""
+    logger.info("Iniciando busca de matérias por cargo e bloco", extra={
+        'cargo': cargo,
+        'bloco': bloco
+    })
+    
     try:
         # Buscar no dicionário CONTEUDOS_EDITAL
         bloco_normalizado = bloco.replace('_', ' ').title()
         conteudos = CONTEUDOS_EDITAL.get(cargo, {}).get(bloco_normalizado, [])
+        
+        logger.info("Conteúdos encontrados no edital", extra={
+            'cargo': cargo,
+            'bloco_normalizado': bloco_normalizado,
+            'tipo_conteudos': type(conteudos).__name__,
+            'tem_conteudos': bool(conteudos)
+        })
         
         materias_performance = []
         
@@ -1322,14 +1480,24 @@ def obter_materias_por_cargo_bloco(cargo, bloco):
                     'tendencia': 'subindo' if i % 2 == 0 else 'descendo'
                 })
         
-        return jsonify({
-            'sucesso': True,
-            'materias': materias_performance
+        logger.info("Matérias obtidas com sucesso", extra={
+            'cargo': cargo,
+            'bloco': bloco,
+            'total_materias': len(materias_performance)
         })
         
+        return ResponseFormatter.success(
+            data={'materias': materias_performance},
+            message='Matérias obtidas com sucesso'
+        )
+        
     except Exception as e:
-        print(f"Erro ao obter matérias: {e}")
-        return jsonify({'erro': 'Erro interno do servidor'}), 500
+        logger.error("Erro ao obter matérias por cargo e bloco", extra={
+            'cargo': cargo,
+            'bloco': bloco,
+            'error': str(e)
+        })
+        return ResponseFormatter.internal_error('Erro interno do servidor')
 
 def _obter_conteudo_edital(cargo, bloco, tipo_conhecimento='todos'):
     """Obtém conteúdo específico do edital para o cargo e bloco"""
@@ -1447,11 +1615,16 @@ def _gerar_estatisticas_simuladas():
     }
 
 @questoes_bp.route('/dashboard/estatisticas-gerais/<usuario_id>', methods=['GET'])
+@log_request(logger)
 def obter_estatisticas_gerais(usuario_id):
     """
     Retorna estatísticas gerais do usuário para o dashboard
     """
     try:
+        logger.info("Iniciando busca de estatísticas gerais", extra={
+            'usuario_id': usuario_id
+        })
+        
         # Buscar dados do usuário no Firebase/Firestore
         if firebase_config.is_configured():
             from firebase_admin import firestore
@@ -1500,9 +1673,8 @@ def obter_estatisticas_gerais(usuario_id):
                 meta_semanal = 100
                 progresso_semanal = min((questoes_hoje * 7 / meta_semanal) * 100, 100)
                 
-                return jsonify({
-                    'success': True,
-                    'estatisticas': {
+                return ResponseFormatter.success(
+                    data={
                         'questoes_respondidas': questoes_respondidas,
                         'questoes_corretas': questoes_corretas,
                         'taxa_acerto': round(taxa_acerto, 1),
@@ -1523,13 +1695,53 @@ def obter_estatisticas_gerais(usuario_id):
                         'meta_diaria': 20,
                         'progresso_semanal': round(progresso_semanal, 0),
                         'meta_semanal': meta_semanal
-                    }
+                    },
+                    message='Estatísticas gerais obtidas com sucesso'
+                )
+                
+                logger.info("Estatísticas gerais obtidas com sucesso do Firebase", extra={
+                    'usuario_id': usuario_id,
+                    'questoes_respondidas': user_data.get('questoes_respondidas', 0),
+                    'taxa_acerto': round((user_data.get('questoes_corretas', 0) / max(user_data.get('questoes_respondidas', 1), 1)) * 100, 1),
+                    'nivel_atual': user_data.get('nivel_atual', 1),
+                    'xp_atual': user_data.get('xp_atual', 0),
+                    'fonte_dados': 'firebase'
                 })
+                
+                return ResponseFormatter.success(
+                    data={
+                        'questoes_respondidas': user_data.get('questoes_respondidas', 0),
+                        'questoes_corretas': user_data.get('questoes_corretas', 0),
+                        'taxa_acerto': round((user_data.get('questoes_corretas', 0) / max(user_data.get('questoes_respondidas', 1), 1)) * 100, 1),
+                        'tempo_total_estudo': user_data.get('tempo_total_estudo', 0),
+                        'dias_consecutivos': user_data.get('dias_consecutivos', 0),
+                        'melhor_sequencia': user_data.get('melhor_sequencia', 0),
+                        'nivel_atual': user_data.get('nivel_atual', 1),
+                        'xp_atual': user_data.get('xp_atual', 0),
+                        'xp_proximo_nivel': (user_data.get('nivel_atual', 1) + 1) * 100,
+                        'ranking_posicao': ranking_posicao,
+                        'ranking_total': 15420,
+                        'percentil': round((1 - (ranking_posicao / 15420)) * 100, 1),
+                        'favoritas': user_data.get('favoritas', 0),
+                        'listas_revisao': user_data.get('listas_revisao', 0),
+                        'simulados_completos': user_data.get('simulados_completos', 0),
+                        'media_tempo_questao': media_tempo_questao,
+                        'questoes_hoje': questoes_hoje,
+                        'meta_diaria': 20,
+                        'progresso_semanal': round(progresso_semanal, 0),
+                        'meta_semanal': meta_semanal
+                    },
+                    message='Estatísticas gerais obtidas com sucesso'
+                )
         
         # Fallback com dados simulados se Firebase não estiver configurado
-        return jsonify({
-            'success': True,
-            'estatisticas': {
+        logger.info("Gerando estatísticas simuladas - Firebase não configurado", extra={
+            'usuario_id': usuario_id,
+            'fonte_dados': 'simulado'
+        })
+        
+        return ResponseFormatter.success(
+            data={
                 'questoes_respondidas': 1247,
                 'questoes_corretas': 1059,
                 'taxa_acerto': 85.0,
@@ -1550,20 +1762,24 @@ def obter_estatisticas_gerais(usuario_id):
                 'meta_diaria': 20,
                 'progresso_semanal': 78,
                 'meta_semanal': 100
-            }
-        })
+            },
+            message='Estatísticas gerais obtidas com sucesso (dados simulados)'
+        )
         
     except Exception as e:
-        return jsonify({
-            'success': False,
-            'erro': f'Erro ao buscar estatísticas gerais: {str(e)}'
-        }), 500
+        logger.error("Erro ao buscar estatísticas gerais", extra={
+            'usuario_id': usuario_id,
+            'error': str(e)
+        })
+        return ResponseFormatter.internal_error(f'Erro ao buscar estatísticas gerais: {str(e)}')
 
 @questoes_bp.route('/dashboard/desempenho-semanal/<usuario_id>', methods=['GET'])
+@log_request(logger)
 def obter_desempenho_semanal(usuario_id):
     """
     Retorna dados de desempenho semanal do usuário
     """
+    logger.info("Iniciando busca de desempenho semanal", extra={"usuario_id": usuario_id})
     try:
         # Buscar dados do usuário no Firebase/Firestore
         if firebase_config.is_configured():
@@ -1606,15 +1822,23 @@ def obter_desempenho_semanal(usuario_id):
                         'tempo': tempo_medio
                     })
                 
-                return jsonify({
-                    'success': True,
-                    'desempenho_semanal': desempenho_semanal
+                logger.info("Desempenho semanal obtido do Firebase com sucesso", extra={
+                    "usuario_id": usuario_id,
+                    "total_dias": len(desempenho_semanal),
+                    "fonte_dados": "firebase"
                 })
+                return ResponseFormatter.success(
+                    data=desempenho_semanal,
+                    message="Desempenho semanal obtido com sucesso"
+                )
         
         # Fallback com dados simulados
-        return jsonify({
-            'success': True,
-            'desempenho_semanal': [
+        logger.info("Gerando dados simulados de desempenho semanal", extra={
+            "usuario_id": usuario_id,
+            "fonte_dados": "simulado"
+        })
+        return ResponseFormatter.success(
+            data=[
                 { 'dia': 'Seg', 'questoes': 18, 'acertos': 15, 'tempo': 45 },
                 { 'dia': 'Ter', 'questoes': 22, 'acertos': 19, 'tempo': 38 },
                 { 'dia': 'Qua', 'questoes': 25, 'acertos': 21, 'tempo': 42 },
@@ -1622,20 +1846,27 @@ def obter_desempenho_semanal(usuario_id):
                 { 'dia': 'Sex', 'questoes': 28, 'acertos': 24, 'tempo': 35 },
                 { 'dia': 'Sáb', 'questoes': 15, 'acertos': 13, 'tempo': 48 },
                 { 'dia': 'Dom', 'questoes': 12, 'acertos': 10, 'tempo': 52 }
-            ]
-        })
+            ],
+            message="Desempenho semanal simulado obtido com sucesso"
+        )
         
     except Exception as e:
-        return jsonify({
-            'success': False,
-            'erro': f'Erro ao buscar desempenho semanal: {str(e)}'
-        }), 500
+        logger.error("Erro ao buscar desempenho semanal", extra={
+            "usuario_id": usuario_id,
+            "error": str(e)
+        })
+        return ResponseFormatter.internal_error(
+            error=f'Erro ao buscar desempenho semanal: {str(e)}'
+        )
 
 @questoes_bp.route('/dashboard/evolucao-mensal/<usuario_id>', methods=['GET'])
+@log_request(logger)
 def obter_evolucao_mensal(usuario_id):
     """
     Retorna dados de evolução mensal do usuário
     """
+    logger.info("Iniciando busca de evolução mensal", extra={"usuario_id": usuario_id})
+    
     try:
         # Buscar dados do usuário no Firebase/Firestore
         if firebase_config.is_configured():
@@ -1669,35 +1900,51 @@ def obter_evolucao_mensal(usuario_id):
                         'questoes': questoes_mes
                     })
                 
-                return jsonify({
-                    'success': True,
-                    'evolucao_mensal': evolucao_mensal
+                logger.info("Evolução mensal obtida com sucesso do Firebase", extra={
+                    'usuario_id': usuario_id,
+                    'total_meses': len(evolucao_mensal),
+                    'fonte_dados': 'firebase'
                 })
+                return ResponseFormatter.success(
+                    data=evolucao_mensal,
+                    message="Evolução mensal obtida com sucesso"
+                )
         
         # Fallback com dados simulados
-        return jsonify({
-            'success': True,
-            'evolucao_mensal': [
-                { 'mes': 'Jan', 'taxa_acerto': 72.5, 'questoes': 380 },
-                { 'mes': 'Fev', 'taxa_acerto': 75.2, 'questoes': 420 },
-                { 'mes': 'Mar', 'taxa_acerto': 78.8, 'questoes': 465 },
-                { 'mes': 'Abr', 'taxa_acerto': 81.3, 'questoes': 510 },
-                { 'mes': 'Mai', 'taxa_acerto': 83.7, 'questoes': 485 },
-                { 'mes': 'Jun', 'taxa_acerto': 85.9, 'questoes': 520 }
-            ]
+        dados_simulados = [
+            { 'mes': 'Jan', 'taxa_acerto': 72.5, 'questoes': 380 },
+            { 'mes': 'Fev', 'taxa_acerto': 75.2, 'questoes': 420 },
+            { 'mes': 'Mar', 'taxa_acerto': 78.8, 'questoes': 465 },
+            { 'mes': 'Abr', 'taxa_acerto': 81.3, 'questoes': 510 },
+            { 'mes': 'Mai', 'taxa_acerto': 83.7, 'questoes': 485 },
+            { 'mes': 'Jun', 'taxa_acerto': 85.9, 'questoes': 520 }
+        ]
+        logger.info("Evolução mensal simulada gerada", extra={
+            'usuario_id': usuario_id,
+            'total_meses': len(dados_simulados),
+            'fonte_dados': 'simulado'
         })
+        return ResponseFormatter.success(
+            data=dados_simulados,
+            message="Evolução mensal simulada obtida com sucesso"
+        )
         
     except Exception as e:
-        return jsonify({
-            'success': False,
-            'erro': f'Erro ao buscar evolução mensal: {str(e)}'
-        }), 500
+        logger.error("Erro ao buscar evolução mensal", extra={
+            'usuario_id': usuario_id,
+            'error': str(e)
+        })
+        return ResponseFormatter.internal_error(
+            error=f'Erro ao buscar evolução mensal: {str(e)}'
+        )
 
 @questoes_bp.route('/dashboard/metas/<usuario_id>', methods=['GET'])
+@log_request(logger)
 def obter_metas_usuario(usuario_id):
     """
-    Retorna as metas do usuário
+    Retorna metas do usuário
     """
+    logger.info("Iniciando busca de metas do usuário", extra={"usuario_id": usuario_id})
     try:
         # Buscar dados do usuário no Firebase/Firestore
         if firebase_config.is_configured():
@@ -1734,9 +1981,14 @@ def obter_metas_usuario(usuario_id):
                 meta_dias_consecutivos = 30
                 progresso_dias = min((dias_consecutivos / meta_dias_consecutivos) * 100, 100)
                 
-                return jsonify({
-                    'success': True,
-                    'metas': [
+                logger.info("Metas do usuário obtidas com sucesso do Firebase", extra={
+                    "usuario_id": usuario_id,
+                    "total_metas": 4,
+                    "fonte_dados": "firebase"
+                })
+                
+                return ResponseFormatter.success(
+                    data=[
                         {
                             'titulo': 'Questões do Mês',
                             'atual': questoes_respondidas,
@@ -1765,13 +2017,19 @@ def obter_metas_usuario(usuario_id):
                             'progresso': round(progresso_dias, 0),
                             'tipo': 'dias'
                         }
-                    ]
-                })
+                    ],
+                    message='Metas do usuário obtidas com sucesso'
+                )
         
         # Fallback com dados simulados
-        return jsonify({
-            'success': True,
-            'metas': [
+        logger.info("Metas do usuário obtidas com dados simulados", extra={
+            "usuario_id": usuario_id,
+            "total_metas": 4,
+            "fonte_dados": "simulado"
+        })
+        
+        return ResponseFormatter.success(
+            data=[
                 {
                     'titulo': 'Questões do Mês',
                     'atual': 387,
@@ -1800,20 +2058,26 @@ def obter_metas_usuario(usuario_id):
                     'progresso': 40,
                     'tipo': 'dias'
                 }
-            ]
-        })
+            ],
+            message='Metas do usuário obtidas com sucesso (dados simulados)'
+        )
         
     except Exception as e:
-        return jsonify({
-            'success': False,
-            'erro': f'Erro ao buscar metas do usuário: {str(e)}'
-        }), 500
+        logger.error("Erro ao buscar metas do usuário", extra={
+            "usuario_id": usuario_id,
+            "erro": str(e)
+        })
+        return ResponseFormatter.internal_error(
+            message=f'Erro ao buscar metas do usuário: {str(e)}'
+        )
 
 @questoes_bp.route('/dashboard/atividades-recentes/<usuario_id>', methods=['GET'])
+@log_request(logger)
 def obter_atividades_recentes(usuario_id):
     """
-    Retorna atividades recentes do usuário
+    Obtém as atividades recentes do usuário
     """
+    logger.info("Iniciando busca de atividades recentes", extra={"usuario_id": usuario_id})
     try:
         # Buscar dados do usuário no Firebase/Firestore
         if firebase_config.is_configured():
@@ -1883,15 +2147,24 @@ def obter_atividades_recentes(usuario_id):
                 ]
                 atividades.extend(atividades_simuladas[:5-len(atividades)])
             
-            return jsonify({
-                'success': True,
-                'atividades': atividades[:5]  # Limitar a 5 atividades
+            logger.info("Atividades recentes obtidas com sucesso do Firebase", extra={
+                "usuario_id": usuario_id,
+                "total_atividades": len(atividades[:5]),
+                "fonte_dados": "firebase"
             })
+            return ResponseFormatter.success(
+                data=atividades[:5],  # Limitar a 5 atividades
+                message='Atividades recentes obtidas com sucesso'
+            )
         
         # Fallback com dados simulados
-        return jsonify({
-            'success': True,
-            'atividades': [
+        logger.info("Atividades recentes geradas com dados simulados", extra={
+            "usuario_id": usuario_id,
+            "total_atividades": 5,
+            "fonte_dados": "simulado"
+        })
+        return ResponseFormatter.success(
+            data=[
                 {
                     'tipo': 'questao_respondida',
                     'descricao': 'Respondeu questão de Direito Administrativo',
@@ -1927,20 +2200,26 @@ def obter_atividades_recentes(usuario_id):
                     'tempo': '2d atrás',
                     'icone': 'TrendingUp'
                 }
-            ]
-        })
+            ],
+            message='Atividades recentes obtidas com sucesso (dados simulados)'
+        )
         
     except Exception as e:
-        return jsonify({
-            'success': False,
-            'erro': f'Erro ao buscar atividades recentes: {str(e)}'
-        }), 500
+        logger.error("Erro ao buscar atividades recentes", extra={
+            "usuario_id": usuario_id,
+            "error": str(e)
+        })
+        return ResponseFormatter.internal_error(
+            message=f'Erro ao buscar atividades recentes: {str(e)}'
+        )
 
 @questoes_bp.route('/dashboard/notificacoes/<usuario_id>', methods=['GET'])
+@log_request(logger)
 def obter_notificacoes(usuario_id):
     """
-    Retorna notificações do usuário
+    Obtém as notificações do usuário
     """
+    logger.info("Iniciando busca de notificações", extra={"usuario_id": usuario_id})
     try:
         # Buscar dados do usuário no Firebase/Firestore
         if firebase_config.is_configured():
@@ -2024,73 +2303,88 @@ def obter_notificacoes(usuario_id):
                 # Limitar a 5 notificações mais recentes
                 notificacoes = sorted(notificacoes, key=lambda x: x['timestamp'], reverse=True)[:5]
                 
-                return jsonify({
-                    'success': True,
-                    'notificacoes': notificacoes
+                logger.info("Notificações obtidas com sucesso do Firebase", extra={
+                    "usuario_id": usuario_id,
+                    "total_notificacoes": len(notificacoes),
+                    "fonte_dados": "firebase"
                 })
+                return ResponseFormatter.success(
+                    data=notificacoes,
+                    message='Notificações obtidas com sucesso'
+                )
         
         # Fallback com dados simulados
-        return jsonify({
-            'success': True,
-            'notificacoes': [
-                {
-                    'id': 'meta_diaria',
-                    'tipo': 'meta',
-                    'titulo': 'Meta Diária',
-                    'mensagem': 'Faltam 5 questões para atingir sua meta diária!',
-                    'icone': 'Target',
-                    'cor': 'warning',
-                    'timestamp': datetime.now().isoformat(),
-                    'lida': False
-                },
-                {
-                    'id': 'sequencia_acertos',
-                    'tipo': 'conquista',
-                    'titulo': 'Sequência Incrível!',
-                    'mensagem': 'Você acertou 15 questões seguidas! Continue assim!',
-                    'icone': 'Zap',
-                    'cor': 'success',
-                    'timestamp': (datetime.now() - timedelta(minutes=30)).isoformat(),
-                    'lida': False
-                },
-                {
-                    'id': 'proximo_nivel',
-                    'tipo': 'progresso',
-                    'titulo': 'Quase no Próximo Nível!',
-                    'mensagem': 'Faltam apenas 23 XP para o nível 24!',
-                    'icone': 'TrendingUp',
-                    'cor': 'info',
-                    'timestamp': (datetime.now() - timedelta(hours=1)).isoformat(),
-                    'lida': False
-                },
-                {
-                    'id': 'simulado_disponivel',
-                    'tipo': 'info',
-                    'titulo': 'Novo Simulado',
-                    'mensagem': 'Simulado de Direito Constitucional disponível!',
-                    'icone': 'FileText',
-                    'cor': 'info',
-                    'timestamp': (datetime.now() - timedelta(hours=3)).isoformat(),
-                    'lida': True
-                },
-                {
-                    'id': 'ranking_subiu',
-                    'tipo': 'conquista',
-                    'titulo': 'Subiu no Ranking!',
-                    'mensagem': 'Você subiu 15 posições no ranking geral!',
-                    'icone': 'Award',
-                    'cor': 'success',
-                    'timestamp': (datetime.now() - timedelta(days=1)).isoformat(),
-                    'lida': True
-                }
-            ]
+        dados_simulados = [
+            {
+                'id': 'meta_diaria',
+                'tipo': 'meta',
+                'titulo': 'Meta Diária',
+                'mensagem': 'Faltam 5 questões para atingir sua meta diária!',
+                'icone': 'Target',
+                'cor': 'warning',
+                'timestamp': datetime.now().isoformat(),
+                'lida': False
+            },
+            {
+                'id': 'sequencia_acertos',
+                'tipo': 'conquista',
+                'titulo': 'Sequência Incrível!',
+                'mensagem': 'Você acertou 15 questões seguidas! Continue assim!',
+                'icone': 'Zap',
+                'cor': 'success',
+                'timestamp': (datetime.now() - timedelta(minutes=30)).isoformat(),
+                'lida': False
+            },
+            {
+                'id': 'proximo_nivel',
+                'tipo': 'progresso',
+                'titulo': 'Quase no Próximo Nível!',
+                'mensagem': 'Faltam apenas 23 XP para o nível 24!',
+                'icone': 'TrendingUp',
+                'cor': 'info',
+                'timestamp': (datetime.now() - timedelta(hours=1)).isoformat(),
+                'lida': False
+            },
+            {
+                'id': 'simulado_disponivel',
+                'tipo': 'info',
+                'titulo': 'Novo Simulado',
+                'mensagem': 'Simulado de Direito Constitucional disponível!',
+                'icone': 'FileText',
+                'cor': 'info',
+                'timestamp': (datetime.now() - timedelta(hours=3)).isoformat(),
+                'lida': True
+            },
+            {
+                'id': 'ranking_subiu',
+                'tipo': 'conquista',
+                'titulo': 'Subiu no Ranking!',
+                'mensagem': 'Você subiu 15 posições no ranking geral!',
+                'icone': 'Award',
+                'cor': 'success',
+                'timestamp': (datetime.now() - timedelta(days=1)).isoformat(),
+                'lida': True
+            }
+        ]
+        
+        logger.info("Notificações geradas com dados simulados", extra={
+            "usuario_id": usuario_id,
+            "total_notificacoes": len(dados_simulados),
+            "fonte_dados": "simulado"
         })
+        return ResponseFormatter.success(
+            data=dados_simulados,
+            message='Notificações obtidas com sucesso (dados simulados)'
+        )
         
     except Exception as e:
-        return jsonify({
-            'success': False,
-            'erro': f'Erro ao buscar notificações: {str(e)}'
-        }), 500
+        logger.error("Erro ao buscar notificações", extra={
+            "usuario_id": usuario_id,
+            "erro": str(e)
+        })
+        return ResponseFormatter.internal_error(
+            message=f'Erro ao buscar notificações: {str(e)}'
+        )
 
 def _calcular_estatisticas(questoes):
     """Calcula estatísticas reais baseadas nas questões"""
@@ -2120,6 +2414,7 @@ def _calcular_estatisticas(questoes):
 # ========== RECURSOS AVANÇADOS DE QUESTÕES ==========
 
 @questoes_bp.route('/chat-duvidas', methods=['POST'])
+@log_request(logger)
 def chat_duvidas():
     """Endpoint para chat de dúvidas sobre questões"""
     try:
@@ -2128,11 +2423,15 @@ def chat_duvidas():
         usuario_id = data.get('usuario_id')
         mensagem = data.get('mensagem')
         
+        logger.info("Iniciando chat de dúvidas", extra={
+            'usuario_id': usuario_id,
+            'questao_id': questao_id
+        })
+        
         if not all([questao_id, usuario_id, mensagem]):
-            return jsonify({
-                'success': False,
-                'error': 'questao_id, usuario_id e mensagem são obrigatórios'
-            }), 400
+            return ResponseFormatter.bad_request(
+                message='questao_id, usuario_id e mensagem são obrigatórios'
+            )
         
         # Gerar thread_id único
         thread_id = str(uuid.uuid4())
@@ -2143,10 +2442,9 @@ def chat_duvidas():
         questao_doc = questao_ref.get()
         
         if not questao_doc.exists:
-            return jsonify({
-                'success': False,
-                'error': 'Questão não encontrada'
-            }), 404
+            return ResponseFormatter.not_found(
+                message='Questão não encontrada'
+            )
         
         questao_data = questao_doc.to_dict()
         
@@ -2185,27 +2483,41 @@ def chat_duvidas():
         
         db.collection('chat_duvidas').add(conversa_data)
         
-        return jsonify({
-            'success': True,
+        logger.info("Chat de dúvidas processado com sucesso", extra={
+            'usuario_id': usuario_id,
+            'questao_id': questao_id,
             'thread_id': thread_id,
-            'resposta': resposta,
-            'questao_referencia': {
-                'id': questao_id,
-                'tema': questao_data.get('tema', ''),
-                'questao': questao_data.get('questao', '')[:100] + '...'
-            }
+            'tema': questao_data.get('tema', '')
         })
         
+        return ResponseFormatter.success(
+            data={
+                'thread_id': thread_id,
+                'resposta': resposta,
+                'questao_referencia': {
+                    'id': questao_id,
+                    'tema': questao_data.get('tema', ''),
+                    'questao': questao_data.get('questao', '')[:100] + '...'
+                }
+            },
+            message='Resposta gerada com sucesso'
+        )
+        
     except Exception as e:
-        print(f"Erro no chat de dúvidas: {e}")
-        return jsonify({
-            'success': False,
-            'error': 'Erro interno do servidor'
-        }), 500
+        logger.error("Erro no chat de dúvidas", extra={
+            'usuario_id': usuario_id,
+            'questao_id': questao_id,
+            'error': str(e)
+        })
+        return ResponseFormatter.internal_error(
+            message='Erro interno do servidor'
+        )
 
 @questoes_bp.route('/macetes/<questao_id>', methods=['GET'])
+@log_request(logger)
 def obter_macetes(questao_id):
     """Endpoint para obter macetes de uma questão"""
+    logger.info(f"Iniciando busca de macetes para questão {questao_id}")
     try:
         # Buscar questão no Firebase
         db = firebase_config.get_firestore_client()
@@ -2213,10 +2525,7 @@ def obter_macetes(questao_id):
         questao_doc = questao_ref.get()
         
         if not questao_doc.exists:
-            return jsonify({
-                'success': False,
-                'error': 'Questão não encontrada'
-            }), 404
+            return ResponseFormatter.not_found('Questão não encontrada')
         
         questao_data = questao_doc.to_dict()
         
@@ -2261,22 +2570,34 @@ def obter_macetes(questao_id):
                 }
             ]
         
-        return jsonify({
-            'success': True,
+        logger.info(f"Macetes obtidos com sucesso", extra={
             'questao_id': questao_id,
-            'macetes': macetes
+            'total_macetes': len(macetes),
+            'tema': questao_data.get('tema', 'N/A')
         })
         
+        return ResponseFormatter.success(
+            data={
+                'questao_id': questao_id,
+                'macetes': macetes
+            },
+            message='Macetes obtidos com sucesso'
+        )
+        
     except Exception as e:
-        print(f"Erro ao obter macetes: {e}")
-        return jsonify({
-            'success': False,
-            'error': 'Erro interno do servidor'
-        }), 500
+        logger.error(f"Erro ao obter macetes", extra={
+            'questao_id': questao_id,
+            'error': str(e)
+        })
+        return ResponseFormatter.internal_error(
+            message=f'Erro ao obter macetes: {str(e)}'
+        )
 
 @questoes_bp.route('/pontos-centrais/<questao_id>', methods=['GET'])
+@log_request(logger)
 def obter_pontos_centrais(questao_id):
     """Endpoint para obter pontos centrais de uma questão"""
+    logger.info(f"Iniciando busca de pontos centrais para questão {questao_id}")
     try:
         # Buscar questão no Firebase
         db = firebase_config.get_firestore_client()
@@ -2284,10 +2605,7 @@ def obter_pontos_centrais(questao_id):
         questao_doc = questao_ref.get()
         
         if not questao_doc.exists:
-            return jsonify({
-                'success': False,
-                'error': 'Questão não encontrada'
-            }), 404
+            return ResponseFormatter.not_found('Questão não encontrada')
         
         questao_data = questao_doc.to_dict()
         
@@ -2334,22 +2652,29 @@ def obter_pontos_centrais(questao_id):
                 }
             ]
         
-        return jsonify({
-            'success': True,
+        logger.info(f"Pontos centrais obtidos com sucesso", extra={
             'questao_id': questao_id,
-            'pontos_centrais': pontos_centrais
+            'total_pontos': len(pontos_centrais),
+            'tema': questao_data.get('tema', 'N/A')
+        })
+        
+        return ResponseFormatter.success({
+            'questao_id': questao_id,
+            'dados': pontos_centrais
         })
         
     except Exception as e:
-        print(f"Erro ao obter pontos centrais: {e}")
-        return jsonify({
-            'success': False,
-            'error': 'Erro interno do servidor'
-        }), 500
+        logger.error(f"Erro ao obter pontos centrais", extra={
+            'questao_id': questao_id,
+            'error': str(e)
+        })
+        return ResponseFormatter.internal_error('Erro interno do servidor')
 
 @questoes_bp.route('/outras-exploracoes/<questao_id>', methods=['GET'])
+@log_request(logger)
 def obter_outras_exploracoes(questao_id):
     """Endpoint para obter outras explorações e leituras sugeridas"""
+    logger.info("Iniciando busca por outras explorações", extra={"questao_id": questao_id})
     try:
         # Buscar questão no Firebase
         db = firebase_config.get_firestore_client()
@@ -2357,10 +2682,7 @@ def obter_outras_exploracoes(questao_id):
         questao_doc = questao_ref.get()
         
         if not questao_doc.exists:
-            return jsonify({
-                'success': False,
-                'error': 'Questão não encontrada'
-            }), 404
+            return ResponseFormatter.not_found('Questão não encontrada')
         
         questao_data = questao_doc.to_dict()
         
@@ -2414,16 +2736,21 @@ def obter_outras_exploracoes(questao_id):
                 }
             ]
         
-        return jsonify({
-            'success': True,
+        logger.info("Outras explorações obtidas com sucesso", extra={
+            "questao_id": questao_id,
+            "total_exploracoes": len(exploracoes),
+            "tema": questao_data.get('tema', '')
+        })
+        
+        return ResponseFormatter.success({
             'questao_id': questao_id,
-            'exploracoes': exploracoes
+            'dados': exploracoes
         })
         
     except Exception as e:
-        print(f"Erro ao obter outras explorações: {e}")
-        return jsonify({
-            'success': False,
-            'error': 'Erro interno do servidor'
-        }), 500
+        logger.error("Erro ao obter outras explorações", extra={
+            "questao_id": questao_id,
+            "error": str(e)
+        })
+        return ResponseFormatter.internal_error('Erro interno do servidor')
 

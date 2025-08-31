@@ -7,6 +7,7 @@ import json
 import re
 from typing import Dict, Any, Optional
 from dotenv import load_dotenv
+from utils.logger import StructuredLogger, log_external_api_call
 
 load_dotenv()
 
@@ -21,6 +22,7 @@ class ChatGPTService:
         self.model = "gpt-4"  # Usando GPT-4 com 250k tokens mensais
         self.temperature = 0.7
         self.max_tokens = 1500
+        self.logger = StructuredLogger(__name__)
     
     def _get_prompt_estatico(self) -> str:
         """Retorna o prompt estático para geração de questões FGV"""
@@ -51,6 +53,7 @@ Conteúdo do edital a ser cobrado: {conteudo_edital}
 Tipo de questão desejada: {tipo_questao}
 """
     
+    @log_external_api_call(StructuredLogger(__name__), "ChatGPT")
     def gerar_questao(self, cargo: str, conteudo_edital: str, tipo_questao: str = "múltipla escolha") -> Optional[Dict[str, Any]]:
         """
         Gera uma questão personalizada usando ChatGPT
@@ -64,6 +67,12 @@ Tipo de questão desejada: {tipo_questao}
             Dict com a questão gerada ou None em caso de erro
         """
         try:
+            self.logger.info("Iniciando geração de questão via ChatGPT", extra={
+                'cargo': cargo,
+                'tipo_questao': tipo_questao,
+                'conteudo_length': len(conteudo_edital)
+            })
+            
             # Combinar prompts estático e dinâmico
             prompt_completo = self._get_prompt_estatico() + self._get_prompt_dinamico(cargo, conteudo_edital, tipo_questao)
             
@@ -90,12 +99,28 @@ Tipo de questão desejada: {tipo_questao}
                 questao_data['conteudo_edital'] = conteudo_edital
                 questao_data['prompt_usado'] = prompt_completo[:200] + "..."
                 
+                self.logger.info("Questão gerada com sucesso via ChatGPT", extra={
+                    'cargo': cargo,
+                    'tema': questao_data.get('tema', 'N/A'),
+                    'dificuldade': questao_data.get('dificuldade', 'N/A'),
+                    'tipo': questao_data.get('tipo', 'N/A')
+                })
+                
                 return questao_data
             else:
+                self.logger.error("Erro ao extrair JSON da resposta ChatGPT", extra={
+                    'cargo': cargo,
+                    'resposta_preview': resposta[:200]
+                })
                 print(f"❌ Erro ao extrair JSON da resposta: {resposta[:200]}...")
                 return None
                 
         except Exception as e:
+            self.logger.error("Erro na chamada para ChatGPT", extra={
+                'error': str(e),
+                'cargo': cargo,
+                'tipo_questao': tipo_questao
+            })
             print(f"❌ Erro ao gerar questão: {e}")
             return None
     

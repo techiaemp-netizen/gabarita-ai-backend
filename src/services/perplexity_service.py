@@ -5,12 +5,14 @@ import os
 import json
 import requests
 from typing import Dict, Any, Optional
+from utils.logger import StructuredLogger, log_external_api_call
 
 class PerplexityService:
     def __init__(self):
         self.api_key = os.getenv('PERPLEXITY_API_KEY', 'pplx-dummy-key')
         self.base_url = "https://api.perplexity.ai/chat/completions"
         self.model = "llama-3.1-sonar-small-128k-online"
+        self.logger = StructuredLogger("perplexity_service")
         
         self.headers = {
             "Authorization": f"Bearer {self.api_key}",
@@ -19,6 +21,7 @@ class PerplexityService:
         
         print(f"[PERPLEXITY] Configurado com modelo: {self.model}")
     
+    @log_external_api_call(StructuredLogger(__name__), "Perplexity")
     def gerar_feedback_erro(self, questao: str, alternativa_escolhida: str, 
                            alternativa_correta: str, tema: str) -> Optional[Dict[str, Any]]:
         """
@@ -34,6 +37,12 @@ class PerplexityService:
             Dict com feedback detalhado ou None em caso de erro
         """
         try:
+            self.logger.info("Iniciando geração de feedback via Perplexity", extra={
+                'tema': tema,
+                'questao_length': len(questao),
+                'alternativa_escolhida': alternativa_escolhida[:50],
+                'alternativa_correta': alternativa_correta[:50]
+            })
             prompt = f"""
             Analise o erro do estudante na seguinte questão sobre {tema}:
             
@@ -73,18 +82,38 @@ class PerplexityService:
                 feedback_data = self._extrair_json_resposta(content)
                 
                 if feedback_data:
+                    self.logger.info("Feedback gerado com sucesso via Perplexity", extra={
+                        'tema': tema,
+                        'has_explicacao': 'explicacao_erro' in feedback_data,
+                        'has_conceitos': 'conceitos_importantes' in feedback_data,
+                        'has_fontes': 'fontes_estudo' in feedback_data
+                    })
                     return feedback_data
                 else:
+                    self.logger.warning("Fallback para feedback estruturado - JSON inválido", extra={
+                        'tema': tema,
+                        'content_preview': content[:100]
+                    })
                     # Fallback: criar feedback estruturado manualmente
                     return self._gerar_feedback_fallback(tema, alternativa_escolhida, alternativa_correta)
             else:
+                self.logger.error("Erro na API Perplexity", extra={
+                    'status_code': response.status_code,
+                    'tema': tema,
+                    'error_text': response.text[:200]
+                })
                 print(f"❌ Erro na API Perplexity: {response.status_code} - {response.text}")
                 return self._gerar_feedback_fallback(tema, alternativa_escolhida, alternativa_correta)
                 
         except Exception as e:
+            self.logger.error("Erro ao gerar feedback via Perplexity", extra={
+                'error': str(e),
+                'tema': tema
+            })
             print(f"❌ Erro ao gerar feedback: {e}")
             return self._gerar_feedback_fallback(tema, alternativa_escolhida, alternativa_correta)
     
+    @log_external_api_call(StructuredLogger(__name__), "Perplexity")
     def pesquisar_conteudo(self, tema: str) -> Optional[str]:
         """
         Pesquisa conteúdo atualizado sobre um tema
@@ -96,6 +125,9 @@ class PerplexityService:
             Conteúdo encontrado ou None em caso de erro
         """
         try:
+            self.logger.info("Iniciando pesquisa de conteúdo via Perplexity", extra={
+                'tema': tema
+            })
             prompt = f"Forneça informações atualizadas e precisas sobre: {tema}"
             
             response = requests.post(
@@ -115,12 +147,26 @@ class PerplexityService:
             if response.status_code == 200:
                 data = response.json()
                 content = data.get('choices', [{}])[0].get('message', {}).get('content', '')
+                
+                self.logger.info("Conteúdo pesquisado com sucesso via Perplexity", extra={
+                    'tema': tema,
+                    'content_length': len(content)
+                })
+                
                 return content.strip()
             else:
+                self.logger.error("Erro na pesquisa Perplexity", extra={
+                    'status_code': response.status_code,
+                    'tema': tema
+                })
                 print(f"❌ Erro na pesquisa Perplexity: {response.status_code}")
                 return self._gerar_conteudo_fallback(tema)
                 
         except Exception as e:
+            self.logger.error("Erro ao pesquisar conteúdo via Perplexity", extra={
+                'error': str(e),
+                'tema': tema
+            })
             print(f"❌ Erro na pesquisa: {e}")
             return self._gerar_conteudo_fallback(tema)
     

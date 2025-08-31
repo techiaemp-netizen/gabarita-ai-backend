@@ -1,6 +1,7 @@
 from datetime import datetime, timedelta
 from firebase_admin import firestore
-from ..config.firebase_config import firebase_config
+from config.firebase_config import firebase_config
+from utils.logger import StructuredLogger, log_database_operation
 
 class PlanoService:
     """Serviço para gerenciamento de planos de usuário"""
@@ -135,15 +136,21 @@ class PlanoService:
     
     def __init__(self):
         self.db = firebase_config.get_db() if firebase_config.is_connected() else None
+        self.logger = StructuredLogger("plano_service")
     
+    @log_database_operation(StructuredLogger(__name__), "obter_plano_usuario")
     def obter_plano_usuario(self, user_id):
         """Obtém o plano atual do usuário"""
         try:
+            self.logger.info("Obtendo plano do usuário", extra={'user_id': user_id})
+            
             if not self.db:
+                self.logger.warning("Database não conectado, retornando plano padrão", extra={'user_id': user_id})
                 return self._plano_padrao()
             
             user_doc = self.db.collection('usuarios').document(user_id).get()
             if not user_doc.exists:
+                self.logger.info("Usuário não encontrado, retornando plano padrão", extra={'user_id': user_id})
                 return self._plano_padrao()
             
             user_data = user_doc.to_dict()
@@ -151,24 +158,52 @@ class PlanoService:
             
             # Verificar se o plano ainda está válido
             if self._plano_expirado(plano_info):
+                self.logger.info("Plano expirado, revertendo para gratuito", extra={
+                    'user_id': user_id,
+                    'plano_tipo': plano_info.get('tipo', 'N/A')
+                })
                 # Plano expirado, reverter para gratuito
                 self._reverter_plano_gratuito(user_id)
                 return self._plano_padrao()
             
+            self.logger.info("Plano obtido com sucesso", extra={
+                'user_id': user_id,
+                'plano_tipo': plano_info.get('tipo', 'N/A')
+            })
+            
             return plano_info
             
         except Exception as e:
+            self.logger.error("Erro ao obter plano do usuário", extra={
+                'error': str(e),
+                'user_id': user_id
+            })
             print(f"Erro ao obter plano do usuário: {e}")
             return self._plano_padrao()
     
+    @log_database_operation(StructuredLogger(__name__), "ativar_plano")
     def ativar_plano(self, user_id, tipo_plano, metodo_pagamento=None):
         """Ativa um plano para o usuário"""
         try:
+            self.logger.info("Iniciando ativação de plano", extra={
+                'user_id': user_id,
+                'tipo_plano': tipo_plano,
+                'metodo_pagamento': metodo_pagamento
+            })
+            
             if tipo_plano not in self.TIPOS_PLANOS.values():
+                self.logger.error("Tipo de plano inválido", extra={
+                    'user_id': user_id,
+                    'tipo_plano': tipo_plano
+                })
                 raise ValueError(f"Tipo de plano inválido: {tipo_plano}")
             
             # Verificar se usuário já usou plano promo
             if tipo_plano == 'promo' and self._usuario_ja_usou_promo(user_id):
+                self.logger.warning("Usuário já utilizou plano promocional", extra={
+                    'user_id': user_id,
+                    'tipo_plano': tipo_plano
+                })
                 raise ValueError("Usuário já utilizou o plano promocional")
             
             # Calcular data de expiração
@@ -186,48 +221,96 @@ class PlanoService:
             if not self.db:
                 return plano_info
             
-            # Atualizar no Firestore
-            self.db.collection('usuarios').document(user_id).update({
+            # Atualizar no Firestore (usar set com merge=True para criar se não existir)
+            self.db.collection('usuarios').document(user_id).set({
                 'plano': plano_info,
                 'data_ultima_atualizacao': datetime.now().isoformat()
-            })
+            }, merge=True)
             
             # Registrar histórico de planos
             self._registrar_historico_plano(user_id, plano_info)
             
+            self.logger.info("Plano ativado com sucesso", extra={
+                'user_id': user_id,
+                'tipo_plano': tipo_plano,
+                'data_expiracao': data_expiracao.isoformat() if data_expiracao else None
+            })
+            
             return plano_info
             
         except Exception as e:
+            self.logger.error("Erro ao ativar plano", extra={
+                'error': str(e),
+                'user_id': user_id,
+                'tipo_plano': tipo_plano
+            })
             print(f"Erro ao ativar plano: {e}")
             raise e
     
+    @log_database_operation(StructuredLogger(__name__), "verificar_acesso_recurso")
     def verificar_acesso_recurso(self, user_id, recurso):
         """Verifica se o usuário tem acesso a um recurso específico"""
         try:
+            self.logger.info("Verificando acesso a recurso", extra={
+                'user_id': user_id,
+                'recurso': recurso
+            })
+            
             plano = self.obter_plano_usuario(user_id)
             tipo_plano = plano.get('tipo', 'gratuito')
             
             recursos = self.RECURSOS_PLANOS.get(tipo_plano, self.RECURSOS_PLANOS['gratuito'])
-            return recursos.get(recurso, False)
+            tem_acesso = recursos.get(recurso, False)
+            
+            self.logger.info("Verificação de acesso concluída", extra={
+                'user_id': user_id,
+                'recurso': recurso,
+                'tipo_plano': tipo_plano,
+                'tem_acesso': tem_acesso
+            })
+            
+            return tem_acesso
             
         except Exception as e:
+            self.logger.error("Erro ao verificar acesso ao recurso", extra={
+                'error': str(e),
+                'user_id': user_id,
+                'recurso': recurso
+            })
             print(f"Erro ao verificar acesso ao recurso: {e}")
             return False
     
+    @log_database_operation(StructuredLogger(__name__), "obter_limite_questoes")
     def obter_limite_questoes(self, user_id):
         """Obtém o limite de questões para o usuário"""
         try:
+            self.logger.info("Obtendo limite de questões", extra={
+                'user_id': user_id
+            })
+            
             plano = self.obter_plano_usuario(user_id)
             tipo_plano = plano.get('tipo', 'gratuito')
             
             recursos = self.RECURSOS_PLANOS.get(tipo_plano, self.RECURSOS_PLANOS['gratuito'])
             
             if recursos.get('questoes_limitadas', True):
-                return recursos.get('limite_questoes', 3)
+                limite = recursos.get('limite_questoes', 3)
             else:
-                return None  # Ilimitado
+                limite = None  # Ilimitado
+            
+            self.logger.info("Limite de questões obtido", extra={
+                'user_id': user_id,
+                'tipo_plano': tipo_plano,
+                'limite': limite
+            })
+            
+            return limite
                 
         except Exception as e:
+            self.logger.error("Erro ao obter limite de questões", extra={
+                'error': str(e),
+                'user_id': user_id
+            })
             print(f"Erro ao obter limite de questões: {e}")
             return 3  # Padrão gratuito
     
@@ -344,10 +427,20 @@ class PlanoService:
             print(f"Erro ao listar planos: {e}")
             return []
     
+    @log_database_operation(StructuredLogger(__name__), "registrar_historico_plano")
     def _registrar_historico_plano(self, user_id, plano_info):
         """Registra o histórico de planos do usuário"""
         try:
+            self.logger.info("Registrando histórico de plano", extra={
+                'user_id': user_id,
+                'tipo_plano': plano_info['tipo']
+            })
+            
             if not self.db:
+                self.logger.warning("Database não conectado - histórico não registrado", extra={
+                    'user_id': user_id,
+                    'tipo_plano': plano_info['tipo']
+                })
                 return
             
             historico = {
@@ -361,7 +454,17 @@ class PlanoService:
             
             self.db.collection('historico_planos').add(historico)
             
+            self.logger.info("Histórico de plano registrado com sucesso", extra={
+                'user_id': user_id,
+                'tipo_plano': plano_info['tipo']
+            })
+            
         except Exception as e:
+            self.logger.error("Erro ao registrar histórico de plano", extra={
+                'error': str(e),
+                'user_id': user_id,
+                'tipo_plano': plano_info.get('tipo', 'unknown')
+            })
             print(f"Erro ao registrar histórico de plano: {e}")
 
 # Instância global do serviço de planos
