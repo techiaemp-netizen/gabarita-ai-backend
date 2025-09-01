@@ -232,7 +232,7 @@ def processar_pagamento():
                 "failure": f"{os.getenv('FRONTEND_URL')}/retorno?status=failure",
                 "pending": f"{os.getenv('FRONTEND_URL')}/retorno?status=pending"
             },
-            "notification_url": f"{os.getenv('BACKEND_URL')}/api/pagamentos/webhook",
+            "notification_url": f"{os.getenv('BACKEND_URL')}/api/payments/webhook",
             "external_reference": f"{user_id}_{plano}_{datetime.now().timestamp()}"
         }
         
