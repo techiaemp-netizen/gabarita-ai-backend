@@ -7,7 +7,7 @@ from routes.questoes import CONTEUDOS_EDITAL
 opcoes_bp = Blueprint('opcoes', __name__)
 logger = StructuredLogger('opcoes')
 
-@opcoes_bp.route('/opcoes/cargos-blocos', methods=['GET'])
+@opcoes_bp.route('/cargos-blocos', methods=['GET'])
 @log_request(logger)
 def get_cargos_blocos():
     """Endpoint para obter lista de cargos e blocos disponíveis"""
@@ -42,7 +42,7 @@ def get_cargos_blocos():
         logger.error("Erro ao obter opções", extra={'error': str(e)})
         return ResponseFormatter.internal_error("Erro interno do servidor")
 
-@opcoes_bp.route('/opcoes/diagnostico', methods=['GET'])
+@opcoes_bp.route('/diagnostico', methods=['GET'])
 @log_request(logger)
 def diagnostico_opcoes():
     """Endpoint de diagnóstico para verificar o status das opções"""
@@ -120,7 +120,7 @@ def diagnostico_opcoes():
             }
         )
 
-@opcoes_bp.route('/opcoes/blocos-cargos', methods=['GET'])
+@opcoes_bp.route('/blocos-cargos', methods=['GET'])
 @log_request(logger)
 def get_blocos_cargos():
     """Endpoint para obter lista de blocos e cargos disponíveis (formato esperado pelo frontend)"""
@@ -167,7 +167,7 @@ def get_blocos_cargos():
         logger.error("Erro ao obter opções blocos-cargos", extra={'error': str(e)})
         return ResponseFormatter.internal_error("Erro interno do servidor")
 
-@opcoes_bp.route('/opcoes/cargos/<bloco>', methods=['GET'])
+@opcoes_bp.route('/cargos/<bloco>', methods=['GET'])
 @log_request(logger)
 def get_cargos_por_bloco(bloco):
     """Endpoint para obter cargos disponíveis para um bloco específico"""
@@ -200,7 +200,7 @@ def get_cargos_por_bloco(bloco):
         logger.error("Erro ao obter cargos para bloco", extra={'bloco': bloco, 'error': str(e)})
         return ResponseFormatter.internal_error("Erro interno do servidor")
 
-@opcoes_bp.route('/opcoes/blocos/<cargo>', methods=['GET'])
+@opcoes_bp.route('/blocos/<cargo>', methods=['GET'])
 @log_request(logger)
 def get_blocos_por_cargo(cargo):
     """Endpoint para obter blocos disponíveis para um cargo específico"""

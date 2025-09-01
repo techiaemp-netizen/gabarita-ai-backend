@@ -634,7 +634,7 @@ def sair():
         # Em uma implementação real, invalidar o token
         # Para desenvolvimento, apenas retornar sucesso
         logger.info("Logout realizado com sucesso")
-        return ResponseFormatter.success({}, 'Logout realizado com sucesso')
+        return ResponseFormatter.success({"loggedOut": True}, 'Logout realizado com sucesso')
         
     except Exception as e:
         logger.error("Erro no processo de logout", extra={"error": str(e)})
