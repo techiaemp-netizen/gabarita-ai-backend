@@ -14,6 +14,7 @@ from routes.news import news_bp
 from routes.opcoes import opcoes_bp
 from routes.usuarios import usuarios_bp
 from routes.payments import payments_bp
+from routes.usuarios import obter_usuario_por_id
 from routes.simulados import simulados_bp
 from routes.performance import performance_bp
 from config.firebase_config import firebase_config
@@ -62,6 +63,13 @@ app.register_blueprint(usuarios_bp, url_prefix='/api/usuarios')
 app.register_blueprint(payments_bp, url_prefix='/api/payments')
 app.register_blueprint(simulados_bp, url_prefix='/api/simulados')
 app.register_blueprint(performance_bp, url_prefix='/api')
+
+# Alias para compatibilidade com frontend
+@app.route('/api/user/<user_id>', methods=['GET'])
+@log_request(logger)
+def user_alias(user_id):
+    """Alias para GET /api/usuarios/<user_id> para compatibilidade com frontend"""
+    return obter_usuario_por_id(user_id)
 
 @app.route('/', methods=['GET'])
 @log_request(logger)
@@ -121,7 +129,7 @@ def test_endpoint():
     
     logger.info("Test endpoint accessed successfully")
     return ResponseFormatter.success({
-        'status': 'sucesso',
+        'status': 'healthy',
         'timestamp': str(datetime.now()),
         'cors_enabled': True
     }, 'Endpoint de teste funcionando')
@@ -141,7 +149,7 @@ def test_opcoes():
         total_cargos = len(CONTEUDOS_EDITAL) if CONTEUDOS_EDITAL else 0
         
         return ResponseFormatter.success({
-            'status': 'sucesso',
+            'status': 'healthy',
             'total_cargos': total_cargos,
             'conteudos_carregados': bool(CONTEUDOS_EDITAL),
             'timestamp': str(datetime.now())
