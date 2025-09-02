@@ -145,7 +145,7 @@ def test_opcoes():
         return response
     
     try:
-        from .routes.questoes import CONTEUDOS_EDITAL
+        from routes.questoes import CONTEUDOS_EDITAL
         total_cargos = len(CONTEUDOS_EDITAL) if CONTEUDOS_EDITAL else 0
         
         return ResponseFormatter.success({
