@@ -5,7 +5,12 @@ Gabarita-AI Backend
 """
 
 import sys
-from main import app
+import os
+
+# Adicionar o diretório pai ao PYTHONPATH para resolver imports absolutos
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+from src.main import app
 
 def run_smoke_tests():
     """
