@@ -7,7 +7,7 @@ import json
 import re
 from typing import Dict, Any, Optional
 from dotenv import load_dotenv
-from utils.logger import StructuredLogger, log_external_api_call
+from src.utils.logger import StructuredLogger, log_external_api_call
 
 load_dotenv()
 

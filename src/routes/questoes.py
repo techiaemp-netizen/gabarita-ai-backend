@@ -2,12 +2,12 @@
 Rotas para geração e gerenciamento de questões
 """
 from flask import Blueprint, request
-from utils.response_formatter import ResponseFormatter
-from services.chatgpt_service import chatgpt_service
-from services.perplexity_service import perplexity_service
-from config.firebase_config import firebase_config
-from utils.response_formatter import ResponseFormatter
-from utils.logger import StructuredLogger, log_request, log_database_operation
+from src.utils.response_formatter import ResponseFormatter
+from src.services.chatgpt_service import chatgpt_service
+from src.services.perplexity_service import perplexity_service
+from src.config.firebase_config import firebase_config
+from src.utils.response_formatter import ResponseFormatter
+from src.utils.logger import StructuredLogger, log_request, log_database_operation
 from datetime import datetime
 import uuid
 import random

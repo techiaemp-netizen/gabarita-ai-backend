@@ -2,22 +2,22 @@ from flask import Flask, request
 from flask_cors import CORS
 import os
 from datetime import datetime
-from services.chatgpt_service import chatgpt_service
-from routes.questoes import CONTEUDOS_EDITAL
-from utils.response_formatter import ResponseFormatter
-from utils.logger import StructuredLogger, log_request
-from routes.auth import auth_bp
-from routes.questoes import questoes_bp
-from routes.planos import planos_bp
-from routes.jogos import jogos_bp
-from routes.news import news_bp
-from routes.opcoes import opcoes_bp
-from routes.usuarios import usuarios_bp
-from routes.payments import payments_bp
-from routes.usuarios import obter_usuario_por_id
-from routes.simulados import simulados_bp
-from routes.performance import performance_bp
-from config.firebase_config import firebase_config
+from src.services.chatgpt_service import chatgpt_service
+from src.routes.questoes import CONTEUDOS_EDITAL
+from src.utils.response_formatter import ResponseFormatter
+from src.utils.logger import StructuredLogger, log_request
+from src.routes.auth import auth_bp
+from src.routes.questoes import questoes_bp
+from src.routes.planos import planos_bp
+from src.routes.jogos import jogos_bp
+from src.routes.news import news_bp
+from src.routes.opcoes import opcoes_bp
+from src.routes.usuarios import usuarios_bp
+from src.routes.payments import payments_bp
+from src.routes.usuarios import obter_usuario_por_id
+from src.routes.simulados import simulados_bp
+from src.routes.performance import performance_bp
+from src.config.firebase_config import firebase_config
 
 app = Flask(__name__)
 

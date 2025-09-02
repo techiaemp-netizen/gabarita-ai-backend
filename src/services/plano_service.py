@@ -1,7 +1,7 @@
 from datetime import datetime, timedelta
 from firebase_admin import firestore
-from config.firebase_config import firebase_config
-from utils.logger import StructuredLogger, log_database_operation
+from src.config.firebase_config import firebase_config
+from src.utils.logger import StructuredLogger, log_database_operation
 
 class PlanoService:
     """Serviço para gerenciamento de planos de usuário"""

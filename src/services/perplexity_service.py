@@ -5,7 +5,7 @@ import os
 import json
 import requests
 from typing import Dict, Any, Optional
-from utils.logger import StructuredLogger, log_external_api_call
+from src.utils.logger import StructuredLogger, log_external_api_call
 
 class PerplexityService:
     def __init__(self):

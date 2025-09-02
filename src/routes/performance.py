@@ -1,8 +1,8 @@
 from flask import Blueprint, request, jsonify
 from datetime import datetime, timedelta
 import sys
-from utils.logger import log_request, app_logger as logger
-from utils.response_formatter import ResponseFormatter
+from src.utils.logger import log_request, app_logger as logger
+from src.utils.response_formatter import ResponseFormatter
 
 # Criar blueprint para performance e ranking
 performance_bp = Blueprint('performance', __name__)

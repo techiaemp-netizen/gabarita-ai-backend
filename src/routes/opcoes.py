@@ -1,8 +1,8 @@
 from flask import Blueprint
-from utils.response_formatter import ResponseFormatter
-from utils.logger import StructuredLogger, log_request
+from src.utils.response_formatter import ResponseFormatter
+from src.utils.logger import StructuredLogger, log_request
 from datetime import datetime
-from routes.questoes import CONTEUDOS_EDITAL
+from src.routes.questoes import CONTEUDOS_EDITAL
 
 opcoes_bp = Blueprint('opcoes', __name__)
 logger = StructuredLogger('opcoes')

@@ -1,8 +1,8 @@
 from flask import Blueprint, request, current_app
 from firebase_admin import auth as firebase_auth, firestore
-from config.firebase_config import firebase_config
-from utils.response_formatter import ResponseFormatter
-from utils.logger import StructuredLogger, log_request
+from src.config.firebase_config import firebase_config
+from src.utils.response_formatter import ResponseFormatter
+from src.utils.logger import StructuredLogger, log_request
 from datetime import datetime
 import uuid
 

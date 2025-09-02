@@ -2,10 +2,10 @@
 Rotas para sistema de jogos educativos
 """
 from flask import Blueprint, request
-from services.chatgpt_service import chatgpt_service
-from config.firebase_config import firebase_config
-from utils.response_formatter import ResponseFormatter
-from utils.logger import StructuredLogger, log_request
+from src.services.chatgpt_service import chatgpt_service
+from src.config.firebase_config import firebase_config
+from src.utils.response_formatter import ResponseFormatter
+from src.utils.logger import StructuredLogger, log_request
 from datetime import datetime, timedelta
 import uuid
 import random

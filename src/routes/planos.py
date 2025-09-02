@@ -1,7 +1,7 @@
 from flask import Blueprint, request
-from utils.response_formatter import ResponseFormatter
-from utils.logger import StructuredLogger, log_request
-from services.plano_service import plano_service
+from src.utils.response_formatter import ResponseFormatter
+from src.utils.logger import StructuredLogger, log_request
+from src.services.plano_service import plano_service
 from firebase_admin import auth, firestore
 from datetime import datetime
 

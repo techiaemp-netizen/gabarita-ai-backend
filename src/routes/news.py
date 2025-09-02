@@ -1,7 +1,7 @@
 from flask import Blueprint, request
 from datetime import datetime, timedelta
-from utils.response_formatter import ResponseFormatter
-from utils.logger import StructuredLogger, log_request
+from src.utils.response_formatter import ResponseFormatter
+from src.utils.logger import StructuredLogger, log_request
 import random
 
 news_bp = Blueprint('news', __name__)
