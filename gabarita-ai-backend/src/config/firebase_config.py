@@ -1,9 +1,7 @@
-"""
-Configuração do Firebase para o Gabarita.AI
-"""
+"""\nConfiguração do Firebase para o Gabarita.AI\n"""
 import os
-import firebase_admin
-from firebase_admin import credentials, firestore, auth
+# import firebase_admin
+# from firebase_admin import credentials, firestore, auth
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -18,51 +16,52 @@ class FirebaseConfig:
     
     def _initialize_firebase(self):
         """Inicializa o Firebase com as credenciais"""
-        try:
-            if not firebase_admin._apps:
-                # Configuração para desenvolvimento usando variáveis de ambiente
-                cred_dict = {
-                    "type": "service_account",
-                    "project_id": os.getenv('FIREBASE_PROJECT_ID'),
-                    "private_key_id": os.getenv('FIREBASE_PRIVATE_KEY_ID'),
-                    "private_key": os.getenv('FIREBASE_PRIVATE_KEY', '').replace('\\n', '\n'),
-                    "client_email": os.getenv('FIREBASE_CLIENT_EMAIL'),
-                    "client_id": os.getenv('FIREBASE_CLIENT_ID'),
-                    "auth_uri": os.getenv('FIREBASE_AUTH_URI'),
-                    "token_uri": os.getenv('FIREBASE_TOKEN_URI'),
-                }
-                
-                # Verificar se todas as credenciais estão presentes
-                if all(cred_dict.values()):
-                    cred = credentials.Certificate(cred_dict)
-                    firebase_admin.initialize_app(cred)
-                    print("✅ Firebase inicializado com sucesso!")
-                else:
-                    print("⚠️ Credenciais do Firebase não encontradas. Usando modo desenvolvimento.")
-                    return
-            
-            # Inicializar serviços
-            self.db = firestore.client()
-            self.auth = auth
-            print("✅ Firestore e Auth conectados com sucesso!")
-            
-        except Exception as e:
-            print(f"❌ Erro ao inicializar Firebase: {e}")
-            self.db = None
-            self.auth = None
+        print("[FIREBASE] 🔧 Modo desenvolvimento - Firebase desabilitado temporariamente")
+        self.db = None
+        self.auth = None
+        return
     
     def get_db(self):
         """Retorna a instância do Firestore"""
         return self.db
     
     def get_auth(self):
-        """Retorna a instância do Auth"""
+        """Retorna a instância do Firebase Auth"""
         return self.auth
+    
+    def verify_token(self, token):
+        """Verifica um token Firebase"""
+        print("[FIREBASE] Token verification disabled in dev mode")
+        return None
+    
+    def create_user(self, email, password, display_name=None):
+        """Cria um novo usuário"""
+        print("[FIREBASE] User creation disabled in dev mode")
+        return None
+    
+    def get_user_by_email(self, email):
+        """Busca usuário por email"""
+        print("[FIREBASE] User lookup disabled in dev mode")
+        return None
+    
+    def update_user(self, uid, **kwargs):
+        """Atualiza dados do usuário"""
+        print("[FIREBASE] User update disabled in dev mode")
+        return None
+    
+    def delete_user(self, uid):
+        """Deleta um usuário"""
+        print("[FIREBASE] User deletion disabled in dev mode")
+        return None
     
     def is_connected(self):
         """Verifica se o Firebase está conectado"""
-        return self.db is not None
+        return False
+    
+    def is_configured(self):
+        """Verifica se o Firebase está configurado"""
+        return False
 
-# Instância global do Firebase
+# Instância global
 firebase_config = FirebaseConfig()
 

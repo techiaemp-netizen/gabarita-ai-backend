@@ -2,74 +2,278 @@
 Rotas de autenticação para o Gabarita.AI
 """
 from flask import Blueprint, request, jsonify
+from werkzeug.security import check_password_hash, generate_password_hash
 from firebase_admin import auth, firestore
 from src.config.firebase_config import firebase_config
 import uuid
-from datetime import datetime
+from datetime import datetime, timedelta
+import jwt
+import re
+import os
 
 auth_bp = Blueprint('auth', __name__)
 
+# Chave secreta para JWT (em produção, usar variável de ambiente)
+JWT_SECRET_KEY = os.getenv('JWT_SECRET_KEY', 'gabarita-ai-secret-key-2024')
+JWT_ALGORITHM = 'HS256'
+JWT_EXPIRATION_HOURS = 24
+
 @auth_bp.route('/login', methods=['POST'])
+@auth_bp.route('/api/auth/login', methods=['POST'])  # Alias para compatibilidade com FE
 def login():
     """Endpoint para login de usuários"""
     try:
         data = request.get_json()
-        email = data.get('email')
-        senha = data.get('senha')
         
-        if not email or not senha:
-            return jsonify({'erro': 'E-mail e senha são obrigatórios'}), 400
+        if not data:
+            return jsonify({
+                'success': False,
+                'error': 'Dados não fornecidos',
+                'message': 'Corpo da requisição deve conter dados JSON'
+            }), 400
         
-        # Para desenvolvimento, simular autenticação
-        # Em produção, usar Firebase Auth
+        email = data.get('email', '').strip().lower()
+        password = data.get('password') or data.get('senha', '')  # Aceita ambos os campos
+        if password:
+            password = password.strip()
+        
+        # Debug logs
+        print(f"[DEBUG] Dados recebidos: {data}")
+        print(f"[DEBUG] Email: '{email}', Password: '{password}'")
+        print(f"[DEBUG] Email válido: {bool(email)}, Password válido: {bool(password)}")
+        
+        if not email or not password:
+            return jsonify({
+                'success': False,
+                'error': 'Email e senha são obrigatórios',
+                'message': 'Email e senha são obrigatórios'
+            }), 400
+        
+        # Validar formato do email
+        email_regex = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
+        if not re.match(email_regex, email):
+            return jsonify({
+                'success': False,
+                'error': 'Email inválido',
+                'message': 'Formato de email inválido'
+            }), 400
+        
+        # Buscar usuário no banco de dados
+        user_data = None
+        user_id = None
+        
         if firebase_config.is_connected():
             try:
-                # Tentar autenticar com Firebase
-                user = auth.get_user_by_email(email)
-                usuario_data = _get_usuario_firestore(user.uid)
+                db = firebase_config.get_db()
+                users_ref = db.collection('usuarios')
+                user_query = users_ref.where('email', '==', email).limit(1).get()
                 
-                if usuario_data:
-                    return jsonify({
-                        'sucesso': True,
-                        'usuario': usuario_data,
-                        'token': user.uid  # Em produção, usar token JWT
-                    })
-                else:
-                    return jsonify({'erro': 'Usuário não encontrado'}), 404
+                if len(user_query) > 0:
+                    user_doc = user_query[0]
+                    user_data = user_doc.to_dict()
+                    user_id = user_doc.id
                     
-            except auth.UserNotFoundError:
-                return jsonify({'erro': 'Credenciais inválidas'}), 401
+                    # Verificar senha
+                    if not check_password_hash(user_data.get('password_hash', ''), password):
+                        return jsonify({
+                            'success': False,
+                            'error': 'Credenciais inválidas',
+                            'message': 'Email ou senha incorretos'
+                        }), 401
+                else:
+                    return jsonify({
+                        'success': False,
+                        'error': 'Usuário não encontrado',
+                        'message': 'Email ou senha incorretos'
+                    }), 401
+                    
             except Exception as e:
-                print(f"Erro na autenticação Firebase: {e}")
-                # Fallback para autenticação simulada
-                pass
+                print(f"Erro ao buscar usuário: {e}")
+                return jsonify({
+                    'success': False,
+                    'error': 'Erro de banco de dados',
+                    'message': 'Erro ao verificar credenciais'
+                }), 500
+        else:
+            # Modo desenvolvimento - simular login
+            print(f"[DEV] Login simulado para: {email}")
+            user_id = str(uuid.uuid4())
+            user_data = {
+                'email': email,
+                'nome': 'Usuário Teste',
+                'plano': 'trial',
+                'ativo': True
+            }
         
-        # Autenticação simulada para desenvolvimento
-        usuario_simulado = {
-            'id': str(uuid.uuid4()),
-            'nome': 'Usuário Teste',
+        # Gerar JWT token
+        token_payload = {
+            'user_id': user_id,
             'email': email,
-            'cargo': 'Enfermeiro na Atenção Primária',
-            'bloco': 'Bloco 5 - Educação, Saúde, Desenvolvimento Social e Direitos Humanos',
-            'vida': 85,
-            'pontuacao': 1250,
-            'nivel_escolaridade': 'Superior',
-            'status': 'ativo',
-            'data_criacao': datetime.now().isoformat(),
-            'ultimo_acesso': datetime.now().isoformat()
+            'plano': user_data.get('plano', 'trial'),
+            'exp': datetime.utcnow() + timedelta(hours=JWT_EXPIRATION_HOURS),
+            'iat': datetime.utcnow()
         }
         
-        return jsonify({
-            'sucesso': True,
-            'usuario': usuario_simulado,
-            'token': usuario_simulado['id']
-        })
+        token = jwt.encode(token_payload, JWT_SECRET_KEY, algorithm=JWT_ALGORITHM)
         
+        return jsonify({
+            'success': True,
+            'message': 'Login realizado com sucesso',
+            'data': {
+                'user_id': user_id,
+                'email': email,
+                'nome': user_data.get('nome', email.split('@')[0]),
+                'plano': user_data.get('plano', 'trial'),
+                'token': token
+            }
+        }), 200
+    
     except Exception as e:
         print(f"Erro no login: {e}")
-        return jsonify({'erro': 'Erro interno do servidor'}), 500
+        return jsonify({
+            'success': False,
+            'error': 'Erro interno do servidor',
+            'message': 'Erro interno do servidor'
+        }), 500
+
+@auth_bp.route('/register', methods=['POST'])
+@auth_bp.route('/api/auth/register', methods=['POST'])
+def register():
+    """Endpoint para registro de novos usuários"""
+    try:
+        data = request.get_json()
+        
+        if not data:
+            return jsonify({
+                'success': False,
+                'error': 'Dados não fornecidos',
+                'message': 'Corpo da requisição deve conter dados JSON'
+            }), 400
+        
+        # Validar campos obrigatórios
+        email = data.get('email', '').strip().lower()
+        password = data.get('password', '').strip()
+        nome = data.get('nome', '').strip()
+        
+        if not email or not password:
+            return jsonify({
+                'success': False,
+                'error': 'Dados obrigatórios ausentes',
+                'message': 'Email e senha são obrigatórios'
+            }), 400
+        
+        # Validar formato do email
+        email_regex = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
+        if not re.match(email_regex, email):
+            return jsonify({
+                'success': False,
+                'error': 'Email inválido',
+                'message': 'Formato de email inválido'
+            }), 400
+        
+        # Validar força da senha
+        if len(password) < 6:
+            return jsonify({
+                'success': False,
+                'error': 'Senha fraca',
+                'message': 'Senha deve ter pelo menos 6 caracteres'
+            }), 400
+        
+        # Verificar se usuário já existe (modo desenvolvimento)
+        if not firebase_config.is_connected():
+            # Simulação para desenvolvimento - sempre permitir registro
+            print(f"[DEV] Registrando usuário: {email}")
+        else:
+            # Verificar se usuário já existe no Firebase
+            try:
+                db = firebase_config.get_db()
+                users_ref = db.collection('users')
+                existing_user = users_ref.where('email', '==', email).limit(1).get()
+                
+                if len(existing_user) > 0:
+                    return jsonify({
+                        'success': False,
+                        'error': 'Usuário já existe',
+                        'message': 'Este email já está cadastrado'
+                    }), 409
+            except Exception as e:
+                print(f"Erro ao verificar usuário existente: {e}")
+                return jsonify({
+                    'success': False,
+                    'error': 'Erro de banco de dados',
+                    'message': 'Erro ao verificar dados do usuário'
+                }), 500
+        
+        # Hash da senha
+        password_hash = generate_password_hash(password)
+        
+        # Criar novo usuário
+        user_data = {
+            'email': email,
+            'password_hash': password_hash,
+            'nome': nome or email.split('@')[0],
+            'plano': 'trial',  # Plano padrão
+            'data_criacao': datetime.now(),
+            'ativo': True,
+            'configuracoes': {
+                'notificacoes': True,
+                'tema': 'claro'
+            }
+        }
+        
+        try:
+            if firebase_config.is_connected():
+                # Salvar no Firebase
+                db = firebase_config.get_db()
+                users_ref = db.collection('usuarios')
+                doc_ref = users_ref.add(user_data)
+                user_id = doc_ref[1].id
+            else:
+                # Modo desenvolvimento - gerar ID simulado
+                user_id = str(uuid.uuid4())
+                print(f"[DEV] Usuário criado com ID: {user_id}")
+            
+            # Gerar JWT token
+            token_payload = {
+                'user_id': user_id,
+                'email': email,
+                'plano': 'trial',
+                'exp': datetime.utcnow() + timedelta(hours=JWT_EXPIRATION_HOURS),
+                'iat': datetime.utcnow()
+            }
+            
+            token = jwt.encode(token_payload, JWT_SECRET_KEY, algorithm=JWT_ALGORITHM)
+            
+            return jsonify({
+                'success': True,
+                'message': 'Usuário registrado com sucesso',
+                'data': {
+                    'user_id': user_id,
+                    'email': email,
+                    'nome': user_data['nome'],
+                    'plano': user_data['plano'],
+                    'token': token
+                }
+            }), 201
+            
+        except Exception as e:
+            print(f"Erro ao criar usuário: {e}")
+            return jsonify({
+                'success': False,
+                'error': 'Erro ao criar usuário',
+                'message': 'Erro interno do servidor ao criar usuário'
+            }), 500
+    
+    except Exception as e:
+        print(f"Erro no registro: {e}")
+        return jsonify({
+            'success': False,
+            'error': 'Erro interno',
+            'message': 'Erro interno do servidor'
+        }), 500
 
 @auth_bp.route('/cadastro', methods=['POST'])
+@auth_bp.route('/api/auth/signup', methods=['POST'])  # Alias para compatibilidade com FE
 def cadastro():
     """Endpoint para cadastro de novos usuários"""
     try:
@@ -79,12 +283,20 @@ def cadastro():
         campos_obrigatorios = ['nome', 'email', 'senha', 'cargo', 'bloco']
         for campo in campos_obrigatorios:
             if not data.get(campo):
-                return jsonify({'erro': f'Campo {campo} é obrigatório'}), 400
+                return jsonify({
+                    'success': False,
+                    'error': f'Campo {campo} é obrigatório',
+                    'message': f'Campo {campo} é obrigatório'
+                }), 400
         
         # Validar confirmação de senha
         confirmar_senha = data.get('confirmarSenha')
         if confirmar_senha and data.get('senha') != confirmar_senha:
-            return jsonify({'erro': 'Senhas não coincidem'}), 400
+            return jsonify({
+                'success': False,
+                'error': 'Senhas não coincidem',
+                'message': 'Senhas não coincidem'
+            }), 400
         
         email = data.get('email')
         senha = data.get('senha')
@@ -124,13 +336,20 @@ def cadastro():
                 db.collection('usuarios').document(user.uid).set(usuario_data)
                 
                 return jsonify({
-                    'sucesso': True,
-                    'usuario': usuario_data,
-                    'token': user.uid
+                    'success': True,
+                    'data': {
+                        'user': usuario_data,
+                        'token': user.uid
+                    },
+                    'message': 'Cadastro realizado com sucesso'
                 })
                 
             except auth.EmailAlreadyExistsError:
-                return jsonify({'erro': 'E-mail já cadastrado'}), 409
+                return jsonify({
+                    'success': False,
+                    'error': 'E-mail já cadastrado',
+                    'message': 'E-mail já cadastrado'
+                }), 409
             except Exception as e:
                 print(f"Erro no cadastro Firebase: {e}")
                 # Fallback para cadastro simulado
@@ -154,14 +373,21 @@ def cadastro():
         }
         
         return jsonify({
-            'sucesso': True,
-            'usuario': usuario_data,
-            'token': usuario_id
+            'success': True,
+            'data': {
+                'user': usuario_data,
+                'token': usuario_id
+            },
+            'message': 'Cadastro realizado com sucesso (modo desenvolvimento)'
         })
         
     except Exception as e:
         print(f"Erro no cadastro: {e}")
-        return jsonify({'erro': 'Erro interno do servidor'}), 500
+        return jsonify({
+            'success': False,
+            'error': 'Erro interno do servidor',
+            'message': 'Erro interno do servidor'
+        }), 500
 
 @auth_bp.route('/verificar-token', methods=['POST'])
 def verificar_token():
@@ -171,7 +397,10 @@ def verificar_token():
         token = data.get('token')
         
         if not token:
-            return jsonify({'erro': 'Token é obrigatório'}), 400
+            return jsonify({
+                'success': False,
+                'error': 'Token é obrigatório'
+            }), 400
         
         if firebase_config.is_connected():
             try:
@@ -187,14 +416,20 @@ def verificar_token():
                     _atualizar_ultimo_acesso(uid)
                     
                     return jsonify({
-                        'sucesso': True,
-                        'usuario': usuario_data
+                        'success': True,
+                        'data': {'usuario': usuario_data}
                     })
                 else:
-                    return jsonify({'erro': 'Usuário não encontrado'}), 404
+                    return jsonify({
+                        'success': False,
+                        'error': 'Usuário não encontrado'
+                    }), 404
                     
             except auth.InvalidIdTokenError:
-                return jsonify({'erro': 'Token inválido'}), 401
+                return jsonify({
+                    'success': False,
+                    'error': 'Token inválido'
+                }), 401
             except Exception as e:
                 print(f"Erro na verificação do token: {e}")
                 # Fallback para verificação simulada
@@ -213,13 +448,16 @@ def verificar_token():
         }
         
         return jsonify({
-            'sucesso': True,
-            'usuario': usuario_simulado
+            'success': True,
+            'data': {'usuario': usuario_simulado}
         })
         
     except Exception as e:
         print(f"Erro na verificação do token: {e}")
-        return jsonify({'erro': 'Erro interno do servidor'}), 500
+        return jsonify({
+            'success': False,
+            'error': 'Erro interno do servidor'
+        }), 500
 
 @auth_bp.route('/google-auth', methods=['POST'])
 def google_auth():
@@ -229,7 +467,10 @@ def google_auth():
         id_token = data.get('idToken')
         
         if not id_token:
-            return jsonify({'erro': 'Token do Google é obrigatório'}), 400
+            return jsonify({
+                'success': False,
+                'error': 'Token do Google é obrigatório'
+            }), 400
         
         if firebase_config.is_connected():
             try:
@@ -246,10 +487,12 @@ def google_auth():
                     # Usuário já existe, fazer login
                     _atualizar_ultimo_acesso(uid)
                     return jsonify({
-                        'sucesso': True,
-                        'usuario': usuario_existente,
-                        'token': uid,
-                        'isNewUser': False
+                        'success': True,
+                        'data': {
+                            'usuario': usuario_existente,
+                            'token': uid,
+                            'isNewUser': False
+                        }
                     })
                 else:
                     # Novo usuário, criar perfil básico
@@ -270,17 +513,25 @@ def google_auth():
                     db.collection('usuarios').document(uid).set(usuario_data)
                     
                     return jsonify({
-                        'sucesso': True,
-                        'usuario': usuario_data,
-                        'token': uid,
-                        'isNewUser': True
+                        'success': True,
+                        'data': {
+                            'usuario': usuario_data,
+                            'token': uid,
+                            'isNewUser': True
+                        }
                     })
                     
             except auth.InvalidIdTokenError:
-                return jsonify({'erro': 'Token do Google inválido'}), 401
+                return jsonify({
+                    'success': False,
+                    'error': 'Token do Google inválido'
+                }), 401
             except Exception as e:
                 print(f"Erro na autenticação Google: {e}")
-                return jsonify({'erro': 'Erro na autenticação com Google'}), 500
+                return jsonify({
+                    'success': False,
+                    'error': 'Erro na autenticação com Google'
+                }), 500
         else:
             # Modo desenvolvimento - simular autenticação Google
             usuario_simulado = {
@@ -296,15 +547,20 @@ def google_auth():
             }
             
             return jsonify({
-                'sucesso': True,
-                'usuario': usuario_simulado,
-                'token': 'google-test-token',
-                'isNewUser': True
+                'success': True,
+                'data': {
+                    'usuario': usuario_simulado,
+                    'token': 'google-test-token',
+                    'isNewUser': True
+                }
             })
             
     except Exception as e:
         print(f"Erro no Google Auth: {e}")
-        return jsonify({'erro': 'Erro interno do servidor'}), 500
+        return jsonify({
+            'success': False,
+            'error': 'Erro interno do servidor'
+        }), 500
 
 @auth_bp.route('/complete-profile', methods=['POST'])
 def complete_profile():
@@ -316,15 +572,24 @@ def complete_profile():
         # Obter token do header Authorization
         auth_header = request.headers.get('Authorization')
         if not auth_header or not auth_header.startswith('Bearer '):
-            return jsonify({'erro': 'Token de autorização é obrigatório'}), 401
+            return jsonify({
+                'success': False,
+                'error': 'Token de autorização é obrigatório'
+            }), 401
             
         token = auth_header.split(' ')[1]
         
         if not nickname:
-            return jsonify({'erro': 'Nickname é obrigatório'}), 400
+            return jsonify({
+                'success': False,
+                'error': 'Nickname é obrigatório'
+            }), 400
             
         if len(nickname) < 3 or len(nickname) > 20:
-            return jsonify({'erro': 'Nickname deve ter entre 3 e 20 caracteres'}), 400
+            return jsonify({
+                'success': False,
+                'error': 'Nickname deve ter entre 3 e 20 caracteres'
+            }), 400
         
         if firebase_config.is_connected():
             try:
@@ -344,16 +609,24 @@ def complete_profile():
                 usuario_atualizado = _get_usuario_firestore(uid)
                 
                 return jsonify({
-                    'sucesso': True,
-                    'usuario': usuario_atualizado,
-                    'mensagem': 'Perfil completado com sucesso'
+                    'success': True,
+                    'data': {
+                        'usuario': usuario_atualizado
+                    },
+                    'message': 'Perfil completado com sucesso'
                 })
                 
             except auth.InvalidIdTokenError:
-                return jsonify({'erro': 'Token inválido'}), 401
+                return jsonify({
+                    'success': False,
+                    'error': 'Token inválido'
+                }), 401
             except Exception as e:
                 print(f"Erro ao completar perfil: {e}")
-                return jsonify({'erro': 'Erro ao atualizar perfil'}), 500
+                return jsonify({
+                    'success': False,
+                    'error': 'Erro ao atualizar perfil'
+                }), 500
         else:
             # Modo desenvolvimento
             usuario_simulado = {
@@ -370,26 +643,38 @@ def complete_profile():
             }
             
             return jsonify({
-                'sucesso': True,
-                'usuario': usuario_simulado,
-                'mensagem': 'Perfil completado com sucesso'
+                'success': True,
+                'data': {
+                    'usuario': usuario_simulado
+                },
+                'message': 'Perfil completado com sucesso'
             })
             
     except Exception as e:
         print(f"Erro ao completar perfil: {e}")
-        return jsonify({'erro': 'Erro interno do servidor'}), 500
+        return jsonify({
+            'success': False,
+            'error': 'Erro interno do servidor'
+        }), 500
 
 @auth_bp.route('/logout', methods=['POST'])
+@auth_bp.route('/api/auth/logout', methods=['POST'])  # Alias para compatibilidade com FE
 def logout():
     """Endpoint para logout de usuários"""
     try:
         # Em uma implementação real, invalidar o token
         # Para desenvolvimento, apenas retornar sucesso
-        return jsonify({'sucesso': True, 'mensagem': 'Logout realizado com sucesso'})
+        return jsonify({
+            'success': True,
+            'message': 'Logout realizado com sucesso'
+        })
         
     except Exception as e:
         print(f"Erro no logout: {e}")
-        return jsonify({'erro': 'Erro interno do servidor'}), 500
+        return jsonify({
+            'success': False,
+            'error': 'Erro interno do servidor'
+        }), 500
 
 def _get_usuario_firestore(uid):
     """Busca dados do usuário no Firestore"""

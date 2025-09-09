@@ -1,0 +1,180 @@
+openapi: 3.0.3
+info:
+  title: Gabarita.AI API
+  version: 0.1.0
+servers:
+  - url: https://SEU-BACKEND/api
+paths:
+  /health:
+    get:
+      summary: Health check
+      responses:
+        "200":
+          description: ok
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ApiResponse" }
+  /opcoes/cargos-blocos:
+    get:
+      responses:
+        "200":
+          description: ok
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ApiResponse" }
+  /opcoes/diagnostico:
+    get:
+      responses:
+        "200":
+          description: ok
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ApiResponse" }
+  /opcoes/blocos-cargos:
+    get:
+      responses:
+        "200":
+          description: ok
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ApiResponse" }
+  /opcoes/cargos/{bloco}:
+    get:
+      parameters:
+        - name: bloco
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: ok
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ApiResponse" }
+  /opcoes/blocos/{cargo}:
+    get:
+      parameters:
+        - name: cargo
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: ok
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ApiResponse" }
+  /questoes/gerar:
+    post:
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        "200":
+          description: ok
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ApiResponse" }
+  /questoes/responder:
+    post:
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - questao_id
+                - resposta
+              properties:
+                questao_id:
+                  type: string
+                resposta:
+                  type: string
+      responses:
+        "200":
+          description: ok
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ApiResponse" }
+  /payments/process:
+    post:
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - plano_id
+                - user_id
+              properties:
+                plano_id:
+                  type: string
+                user_id:
+                  type: string
+      responses:
+        "200":
+          description: ok
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ApiResponse" }
+  /payments/status/{payment_id}:
+    get:
+      parameters:
+        - name: payment_id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: ok
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ApiResponse" }
+  /user/{id}:
+    get:
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: ok
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ApiResponse" }
+  /usuarios/{id}:
+    get:
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: ok
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ApiResponse" }
+components:
+  schemas:
+    ApiResponse:
+      type: object
+      required:
+        - success
+      properties:
+        success:
+          type: boolean
+        data:
+          description: Response data when success is true
+        error:
+          type: string
+          nullable: true
+        message:
+          type: string
+          nullable: true

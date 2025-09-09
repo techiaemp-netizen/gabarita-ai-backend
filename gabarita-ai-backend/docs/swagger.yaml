@@ -1,0 +1,910 @@
+openapi: 3.0.3
+info:
+  title: Gabarita AI API
+  description: |
+    API do sistema Gabarita AI para geração de questões, gerenciamento de usuários e planos.
+    
+    ## Autenticação
+    A API utiliza autenticação via JWT tokens. Inclua o token no header:
+    ```
+    Authorization: Bearer <seu_token_jwt>
+    ```
+    
+    ## Formato de Resposta
+    Todas as respostas seguem o padrão:
+    ```json
+    {
+      "success": true|false,
+      "data": { /* dados da resposta */ },
+      "message": "Mensagem descritiva",
+      "error": "Tipo do erro (apenas em caso de erro)"
+    }
+    ```
+  version: 1.0.0
+  contact:
+    name: Gabarita AI Support
+    email: suporte@gabaritai.app.br
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+
+servers:
+  - url: https://gabarita-ai-backend.onrender.com
+    description: Servidor de Produção
+  - url: http://localhost:5000
+    description: Servidor de Desenvolvimento
+
+paths:
+  /health:
+    get:
+      tags:
+        - Sistema
+      summary: Health Check
+      description: Verifica se a API está funcionando
+      responses:
+        '200':
+          description: API funcionando normalmente
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: healthy
+                  timestamp:
+                    type: string
+                    format: date-time
+                  version:
+                    type: string
+                    example: 1.0.0
+
+  # AUTENTICAÇÃO
+  /api/auth/login:
+    post:
+      tags:
+        - Autenticação
+      summary: Login do usuário
+      description: Autentica usuário e retorna token JWT
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - email
+                - password
+              properties:
+                email:
+                  type: string
+                  format: email
+                  example: usuario@exemplo.com
+                password:
+                  type: string
+                  format: password
+                  example: minhasenha123
+      responses:
+        '200':
+          description: Login realizado com sucesso
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '401':
+          description: Credenciais inválidas
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/auth/signup:
+    post:
+      tags:
+        - Autenticação
+      summary: Cadastro de usuário
+      description: Cria nova conta de usuário
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - email
+                - password
+                - name
+              properties:
+                email:
+                  type: string
+                  format: email
+                name:
+                  type: string
+                password:
+                  type: string
+                  format: password
+      responses:
+        '201':
+          description: Usuário criado com sucesso
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '400':
+          description: Dados inválidos
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/auth/logout:
+    post:
+      tags:
+        - Autenticação
+      summary: Logout do usuário
+      description: Invalida o token JWT atual
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Logout realizado com sucesso
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+
+  /api/auth/refresh-token:
+    post:
+      tags:
+        - Autenticação
+      summary: Renovar token
+      description: Renova o token JWT
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Token renovado com sucesso
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+
+  # ALIASES DE AUTENTICAÇÃO
+  /api/login:
+    post:
+      tags:
+        - Autenticação (Aliases)
+      summary: Login (Alias)
+      description: Alias para /api/auth/login
+      requestBody:
+        $ref: '#/paths/~1api~1auth~1login/post/requestBody'
+      responses:
+        $ref: '#/paths/~1api~1auth~1login/post/responses'
+
+  /api/refresh-token:
+    post:
+      tags:
+        - Autenticação (Aliases)
+      summary: Refresh Token (Alias)
+      description: Alias para /api/auth/refresh-token
+      security:
+        - bearerAuth: []
+      responses:
+        $ref: '#/paths/~1api~1auth~1refresh-token/post/responses'
+
+  # USUÁRIOS
+  /api/user/{user_id}:
+    get:
+      tags:
+        - Usuários
+      summary: Obter usuário por ID
+      description: Retorna dados de um usuário específico
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: user_id
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: ID do usuário
+      responses:
+        '200':
+          description: Usuário encontrado
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/User'
+        '404':
+          description: Usuário não encontrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    put:
+      tags:
+        - Usuários
+      summary: Atualizar usuário
+      description: Atualiza dados de um usuário específico
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: user_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserUpdate'
+      responses:
+        '200':
+          description: Usuário atualizado com sucesso
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/User'
+
+  /api/user/profile:
+    get:
+      tags:
+        - Usuários
+      summary: Obter perfil do usuário logado
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Perfil do usuário
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/User'
+
+    put:
+      tags:
+        - Usuários
+      summary: Atualizar perfil do usuário logado
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserUpdate'
+      responses:
+        '200':
+          description: Perfil atualizado com sucesso
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/User'
+
+  # ALIASES DE USUÁRIOS
+  /api/usuarios/{user_id}:
+    get:
+      tags:
+        - Usuários (Aliases)
+      summary: Obter usuário (Alias)
+      description: Alias para /api/user/{user_id}
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: user_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        $ref: '#/paths/~1api~1user~1{user_id}/get/responses'
+
+    put:
+      tags:
+        - Usuários (Aliases)
+      summary: Atualizar usuário (Alias)
+      description: Alias para /api/user/{user_id}
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: user_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        $ref: '#/paths/~1api~1user~1{user_id}/put/requestBody'
+      responses:
+        $ref: '#/paths/~1api~1user~1{user_id}/put/responses'
+
+  /api/usuarios/perfil:
+    get:
+      tags:
+        - Usuários (Aliases)
+      summary: Obter perfil (Alias)
+      description: Alias para /api/user/profile
+      security:
+        - bearerAuth: []
+      responses:
+        $ref: '#/paths/~1api~1user~1profile/get/responses'
+
+    put:
+      tags:
+        - Usuários (Aliases)
+      summary: Atualizar perfil (Alias)
+      description: Alias para /api/user/profile
+      security:
+        - bearerAuth: []
+      requestBody:
+        $ref: '#/paths/~1api~1user~1profile/put/requestBody'
+      responses:
+        $ref: '#/paths/~1api~1user~1profile/put/responses'
+
+  # OPÇÕES
+  /api/opcoes/{tipo}:
+    get:
+      tags:
+        - Opções
+      summary: Obter opções por tipo (Rota Genérica)
+      description: |
+        Rota genérica que redireciona para funções específicas baseadas no tipo.
+        
+        Tipos suportados:
+        - `cargos-blocos`: Lista de cargos agrupados por blocos
+        - `blocos-cargos`: Lista de blocos agrupados por cargos
+        - `diagnostico`: Estatísticas do sistema
+      parameters:
+        - name: tipo
+          in: path
+          required: true
+          schema:
+            type: string
+            enum: [cargos-blocos, blocos-cargos, diagnostico]
+          description: Tipo de opção a ser consultada
+      responses:
+        '200':
+          description: Opções encontradas
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+        '404':
+          description: Tipo de opção não encontrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/opcoes/cargos-blocos:
+    get:
+      tags:
+        - Opções
+      summary: Obter cargos agrupados por blocos
+      responses:
+        '200':
+          description: Lista de cargos por blocos
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        additionalProperties:
+                          type: array
+                          items:
+                            type: string
+
+  /api/opcoes/blocos-cargos:
+    get:
+      tags:
+        - Opções
+      summary: Obter blocos agrupados por cargos
+      responses:
+        '200':
+          description: Lista de blocos por cargos
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        additionalProperties:
+                          type: array
+                          items:
+                            type: string
+
+  /api/opcoes/diagnostico:
+    get:
+      tags:
+        - Opções
+      summary: Obter diagnóstico do sistema
+      description: Retorna estatísticas básicas do sistema
+      responses:
+        '200':
+          description: Diagnóstico do sistema
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          total_cargos:
+                            type: integer
+                            description: Total de cargos disponíveis
+                          total_blocos:
+                            type: integer
+                            description: Total de blocos de conteúdo
+                          conteudos_por_cargo:
+                            type: object
+                            additionalProperties:
+                              type: integer
+                            description: Contagem de conteúdos por cargo
+                          sistema_status:
+                            type: string
+                            example: ativo
+
+  /api/opcoes/cargos-por-bloco/{bloco}:
+    get:
+      tags:
+        - Opções
+      summary: Obter cargos por bloco específico
+      parameters:
+        - name: bloco
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Nome do bloco
+      responses:
+        '200':
+          description: Lista de cargos para o bloco
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          type: string
+
+  /api/opcoes/blocos-por-cargo/{cargo}:
+    get:
+      tags:
+        - Opções
+      summary: Obter blocos por cargo específico
+      parameters:
+        - name: cargo
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Nome do cargo
+      responses:
+        '200':
+          description: Lista de blocos para o cargo
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          type: string
+
+  # QUESTÕES
+  /api/questoes/gerar:
+    post:
+      tags:
+        - Questões
+      summary: Gerar nova questão
+      description: Gera uma questão personalizada baseada nos parâmetros fornecidos
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - cargo
+                - bloco
+                - conteudo
+              properties:
+                cargo:
+                  type: string
+                  description: Cargo para o qual gerar a questão
+                bloco:
+                  type: string
+                  description: Bloco de conteúdo
+                conteudo:
+                  type: string
+                  description: Conteúdo específico
+                dificuldade:
+                  type: string
+                  enum: [facil, medio, dificil]
+                  default: medio
+      responses:
+        '200':
+          description: Questão gerada com sucesso
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/Question'
+
+  /api/questoes/responder:
+    post:
+      tags:
+        - Questões
+      summary: Responder questão
+      description: Submete resposta para uma questão
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - questao_id
+                - resposta
+              properties:
+                questao_id:
+                  type: string
+                  description: ID da questão
+                resposta:
+                  type: string
+                  description: Resposta selecionada (A, B, C, D, E)
+      responses:
+        '200':
+          description: Resposta processada
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          correto:
+                            type: boolean
+                          resposta_correta:
+                            type: string
+                          explicacao:
+                            type: string
+
+  # PLANOS
+  /api/planos:
+    get:
+      tags:
+        - Planos
+      summary: Listar planos disponíveis
+      responses:
+        '200':
+          description: Lista de planos
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/Plan'
+
+  /api/planos/subscribe:
+    post:
+      tags:
+        - Planos
+      summary: Contratar plano
+      description: Inicia processo de contratação de plano
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - plan_id
+              properties:
+                plan_id:
+                  type: string
+                  description: ID do plano a ser contratado
+      responses:
+        '200':
+          description: Processo de contratação iniciado
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          payment_url:
+                            type: string
+                            format: uri
+                            description: URL para pagamento
+
+  # PAGAMENTOS
+  /api/payments/status:
+    get:
+      tags:
+        - Pagamentos
+      summary: Status do pagamento
+      description: Verifica status do pagamento do usuário
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Status do pagamento
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/SuccessResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          status:
+                            type: string
+                            enum: [pending, approved, rejected]
+                          plan:
+                            type: string
+                          expires_at:
+                            type: string
+                            format: date-time
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    SuccessResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        message:
+          type: string
+          example: Operação realizada com sucesso
+      required:
+        - success
+        - message
+
+    ErrorResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: false
+        error:
+          type: string
+          example: Erro de validação
+        message:
+          type: string
+          example: Descrição detalhada do erro
+      required:
+        - success
+        - error
+        - message
+
+    AuthResponse:
+      allOf:
+        - $ref: '#/components/schemas/SuccessResponse'
+        - type: object
+          properties:
+            data:
+              type: object
+              properties:
+                token:
+                  type: string
+                  description: JWT token
+                user:
+                  $ref: '#/components/schemas/User'
+              required:
+                - token
+                - user
+
+    User:
+      type: object
+      properties:
+        id:
+          type: integer
+          description: ID único do usuário
+        email:
+          type: string
+          format: email
+          description: Email do usuário
+        name:
+          type: string
+          description: Nome completo do usuário
+        created_at:
+          type: string
+          format: date-time
+          description: Data de criação da conta
+        updated_at:
+          type: string
+          format: date-time
+          description: Data da última atualização
+        plan:
+          type: string
+          nullable: true
+          description: Plano atual do usuário
+      required:
+        - id
+        - email
+        - name
+        - created_at
+        - updated_at
+
+    UserUpdate:
+      type: object
+      properties:
+        name:
+          type: string
+          description: Nome completo do usuário
+        email:
+          type: string
+          format: email
+          description: Email do usuário
+        password:
+          type: string
+          format: password
+          description: Nova senha (opcional)
+
+    Question:
+      type: object
+      properties:
+        id:
+          type: string
+          description: ID único da questão
+        enunciado:
+          type: string
+          description: Texto da questão
+        alternativas:
+          type: object
+          properties:
+            A:
+              type: string
+            B:
+              type: string
+            C:
+              type: string
+            D:
+              type: string
+            E:
+              type: string
+          description: Alternativas da questão
+        cargo:
+          type: string
+          description: Cargo relacionado
+        bloco:
+          type: string
+          description: Bloco de conteúdo
+        conteudo:
+          type: string
+          description: Conteúdo específico
+        dificuldade:
+          type: string
+          enum: [facil, medio, dificil]
+          description: Nível de dificuldade
+      required:
+        - id
+        - enunciado
+        - alternativas
+        - cargo
+        - bloco
+        - conteudo
+        - dificuldade
+
+    Plan:
+      type: object
+      properties:
+        id:
+          type: string
+          description: ID único do plano
+        name:
+          type: string
+          description: Nome do plano
+        description:
+          type: string
+          description: Descrição do plano
+        price:
+          type: number
+          format: float
+          description: Preço do plano
+        features:
+          type: array
+          items:
+            type: string
+          description: Lista de funcionalidades
+        duration:
+          type: string
+          description: Duração do plano
+      required:
+        - id
+        - name
+        - description
+        - price
+        - features
+        - duration
+
+tags:
+  - name: Sistema
+    description: Endpoints de sistema e monitoramento
+  - name: Autenticação
+    description: Endpoints de autenticação e autorização
+  - name: Autenticação (Aliases)
+    description: Aliases para compatibilidade com versões anteriores
+  - name: Usuários
+    description: Gerenciamento de usuários
+  - name: Usuários (Aliases)
+    description: Aliases em português para usuários
+  - name: Opções
+    description: Endpoints para obter opções de cargos e blocos
+  - name: Questões
+    description: Geração e resposta de questões
+  - name: Planos
+    description: Gerenciamento de planos de assinatura
+  - name: Pagamentos
+    description: Status e processamento de pagamentos

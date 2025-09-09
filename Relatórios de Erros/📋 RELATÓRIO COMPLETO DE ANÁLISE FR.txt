@@ -1,0 +1,94 @@
+📋 RELATÓRIO COMPLETO DE ANÁLISE FRONTEND-BACKEND
+🔍 RESUMO EXECUTIVO
+Após análise completa dos contratos entre frontend e backend, identifiquei múltiplas incongruências críticas que explicam os erros reportados. O projeto apresenta problemas de idioma, estruturas de dados incompatíveis e endpoints desalinhados.
+
+🚨 PROBLEMAS CRÍTICOS IDENTIFICADOS
+1. AUTENTICAÇÃO - Múltiplos Endpoints Conflitantes
+❌ PROBLEMA: Existem 3 rotas diferentes para login:
+
+main.py: /api/auth/login
+signup.py: /api/auth/login (blueprint)
+auth.py: /login (não registrado)
+🔧 SOLUÇÃO: Consolidar em uma única rota /api/auth/login
+
+Frontend espera:
+
+Backend retorna (signup.py):
+
+2. GERAÇÃO DE QUESTÕES - Contrato Quebrado
+❌ PROBLEMA GRAVE: Frontend e backend usam estruturas completamente diferentes:
+
+Frontend envia:
+
+Backend espera:
+
+Frontend espera retorno:
+
+Backend retorna:
+
+3. PROBLEMAS DE IDIOMA - Português vs Inglês
+❌ INCONSISTÊNCIAS:
+
+Backend usa 'sucesso' (português)
+Frontend espera 'success' (inglês)
+Backend usa 'erro' vs Frontend espera 'error'
+Campos: 'usuario' vs 'user', 'senha' vs 'password'
+4. DASHBOARD/PERFORMANCE - Endpoints Inexistentes
+❌ PROBLEMA: Frontend chama endpoints que não existem:
+
+Frontend chama:
+
+GET /api/user/profile ❌ NÃO EXISTE
+PUT /api/user/profile ❌ NÃO EXISTE
+Backend tem:
+
+GET /api/performance ✅ EXISTE
+Múltiplos endpoints em questoes.py para dashboard
+5. PLANOS - Alias Problemático
+⚠️ INCONSISTÊNCIA:
+
+Backend tem /api/planos E /api/plans (alias)
+Frontend usa /api/plans ✅
+Pode causar confusão na manutenção
+📊 MAPEAMENTO COMPLETO DE ENDPOINTS
+FRONTEND (services/api.ts)
+BACKEND (Rotas Registradas)
+🔧 CORREÇÕES URGENTES NECESSÁRIAS
+1. Padronizar Idioma
+2. Corrigir Contrato de Questões
+3. Implementar Endpoints Ausentes
+4. Remover Duplicações
+Remover rota /api/auth/login do main.py
+Remover rota /api/questoes/gerar do main.py
+Usar apenas blueprints
+5. Padronizar Estruturas de Resposta
+TypeScript
+
+
+
+// Padrão unificadointerface ApiResponse<T> {  success: boolean;  data?: T;  error?: string;  message?: string;}
+⚡ IMPACTO DOS PROBLEMAS
+1.
+🔴 CRÍTICO: Geração de questões falha (usuario_id ausente)
+2.
+🔴 CRÍTICO: Login inconsistente (múltiplas rotas)
+3.
+🟡 MÉDIO: Profile endpoints ausentes
+4.
+🟡 MÉDIO: Inconsistências de idioma
+5.
+🟢 BAIXO: Duplicação de rotas
+📈 RECOMENDAÇÕES FINAIS
+1.
+Implementar middleware de padronização para respostas
+2.
+Criar testes de contrato entre frontend/backend
+3.
+Documentar API com OpenAPI/Swagger
+4.
+Usar TypeScript no backend para type safety
+5.
+Implementar versionamento de API
+🎯 PRIORIDADE: Corrigir geração de questões e autenticação primeiro, pois são funcionalidades core que estão completamente quebradas.
+
+Todos os problemas identificados explicam os erros reportados pelo usuário. A correção dessas incongruências resolverá os problemas de comunicação frontend-backend.

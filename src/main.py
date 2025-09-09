@@ -7,14 +7,18 @@ from routes.questoes import CONTEUDOS_EDITAL
 from routes.signup import signup_bp
 from routes.questoes import questoes_bp
 from routes.payments import payments_bp
+from routes.auth import auth_bp
+from routes.user import user_bp
 
 app = Flask(__name__)
 CORS(app)
 
 # Registrar blueprints
 app.register_blueprint(signup_bp, url_prefix='/api/auth')
+app.register_blueprint(auth_bp, url_prefix='/api/auth')
 app.register_blueprint(questoes_bp, url_prefix='/api/questoes')
 app.register_blueprint(payments_bp)
+app.register_blueprint(user_bp, url_prefix='/api/user')
 
 @app.route('/', methods=['GET'])
 def home():
@@ -39,21 +43,7 @@ def health_check():
         'version': '1.0.0'
     })
 
-@app.route('/api/auth/login', methods=['POST'])
-def login():
-    data = request.get_json()
-    # Simulação de login simples
-    return jsonify({
-        'success': True,
-        'user': {
-            'id': '1',
-            'nome': data.get('email', 'Usuário'),
-            'email': data.get('email'),
-            'cargo': 'Enfermeiro',
-            'bloco': 'Saúde'
-        },
-        'token': 'demo_token_123'
-    })
+# Rotas de autenticação movidas para auth_bp blueprint
 
 @app.route('/api/questoes/gerar', methods=['POST'])
 def gerar_questao_endpoint():

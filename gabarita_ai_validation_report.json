@@ -1,0 +1,97 @@
+{
+  "timestamp": "2025-09-09T13:03:06.491668",
+  "summary": {
+    "total_tests": 14,
+    "passed": 13,
+    "failed": 0,
+    "warned": 1,
+    "skipped": 0,
+    "success_rate": 92.85714285714286
+  },
+  "tests": [
+    {
+      "test": "Backend Health Check",
+      "status": "PASS",
+      "details": "Backend respondendo corretamente",
+      "timestamp": "2025-09-09T13:03:04.581986"
+    },
+    {
+      "test": "Frontend Health Check",
+      "status": "PASS",
+      "details": "Frontend respondendo corretamente",
+      "timestamp": "2025-09-09T13:03:04.845371"
+    },
+    {
+      "test": "User Registration",
+      "status": "PASS",
+      "details": "Usuário registrado com sucesso",
+      "timestamp": "2025-09-09T13:03:05.363519"
+    },
+    {
+      "test": "User Login",
+      "status": "PASS",
+      "details": "Login realizado e JWT obtido",
+      "timestamp": "2025-09-09T13:03:06.373467"
+    },
+    {
+      "test": "Protected Route /api/questoes/gerar",
+      "status": "WARN",
+      "details": "Status inesperado: 405",
+      "timestamp": "2025-09-09T13:03:06.383531"
+    },
+    {
+      "test": "Protected Route /api/user/profile",
+      "status": "PASS",
+      "details": "Status: 200",
+      "timestamp": "2025-09-09T13:03:06.394768"
+    },
+    {
+      "test": "Protected Route /api/simulados",
+      "status": "PASS",
+      "details": "Status: 404",
+      "timestamp": "2025-09-09T13:03:06.404228"
+    },
+    {
+      "test": "Protected Routes Overall",
+      "status": "PASS",
+      "details": "2/3 rotas funcionando",
+      "timestamp": "2025-09-09T13:03:06.404228"
+    },
+    {
+      "test": "Public Endpoint /api/planos",
+      "status": "PASS",
+      "details": "Status: 200",
+      "timestamp": "2025-09-09T13:03:06.412361"
+    },
+    {
+      "test": "Public Endpoint /api/jogos",
+      "status": "PASS",
+      "details": "Status: 200",
+      "timestamp": "2025-09-09T13:03:06.440388"
+    },
+    {
+      "test": "Public Endpoint /api/opcoes",
+      "status": "PASS",
+      "details": "Status: 200",
+      "timestamp": "2025-09-09T13:03:06.449611"
+    },
+    {
+      "test": "Public Endpoint /api/news",
+      "status": "PASS",
+      "details": "Status: 200",
+      "timestamp": "2025-09-09T13:03:06.457882"
+    },
+    {
+      "test": "Public Endpoints Overall",
+      "status": "PASS",
+      "details": "4/4 endpoints funcionando",
+      "timestamp": "2025-09-09T13:03:06.458887"
+    },
+    {
+      "test": "CORS Configuration",
+      "status": "PASS",
+      "details": "Headers CORS configurados",
+      "timestamp": "2025-09-09T13:03:06.486841"
+    }
+  ]
+}

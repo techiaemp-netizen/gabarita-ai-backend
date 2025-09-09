@@ -136,6 +136,132 @@ class PlanoService:
     def __init__(self):
         self.db = firebase_config.get_db() if firebase_config.is_connected() else None
     
+    def listar_planos_disponiveis(self):
+        """Lista todos os planos disponíveis com dados dinâmicos"""
+        try:
+            planos = []
+            
+            for tipo_plano in self.TIPOS_PLANOS.values():
+                recursos_lista = self._formatar_recursos_lista(tipo_plano)
+                
+                plano = {
+                    'id': tipo_plano,
+                    'nome': self._obter_nome_plano(tipo_plano),
+                    'preco': self.PRECOS_PLANOS.get(tipo_plano, 0.00),
+                    'periodo': self._obter_periodo_plano(tipo_plano),
+                    'descricao': self._obter_descricao_plano(tipo_plano),
+                    'recursos': recursos_lista,
+                    'popular': self._plano_popular(tipo_plano),
+                    'duracao': self._obter_duracao_plano(tipo_plano),
+                    'tipo': tipo_plano,
+                    'pode_renovar': self.RENOVACAO_PLANOS.get(tipo_plano, False),
+                    'disponivel': True,
+                    'created_at': datetime.now().isoformat()
+                }
+                
+                planos.append(plano)
+            
+            return planos
+            
+        except Exception as e:
+            print(f"Erro ao listar planos disponíveis: {e}")
+            return []
+    
+    def _obter_nome_plano(self, tipo_plano):
+        """Obtém o nome formatado do plano"""
+        nomes = {
+            'gratuito': 'Gratuito/Trial',
+            'trial': 'Trial',
+            'promo': 'Promo (Semanal)',
+            'lite': 'Lite (Mensal)',
+            'premium': 'Premium (Bimestral)',
+            'premium_plus': 'Premium Plus',
+            'black': 'Black CNU ⭐'
+        }
+        return nomes.get(tipo_plano, tipo_plano.title())
+    
+    def _obter_periodo_plano(self, tipo_plano):
+        """Obtém o período do plano"""
+        periodos = {
+            'gratuito': 'ilimitado',
+            'trial': 'ilimitado',
+            'promo': '7 dias',
+            'lite': '30 dias',
+            'premium': '60 dias',
+            'premium_plus': '60 dias',
+            'black': 'até 5 de dezembro de 2025'
+        }
+        return periodos.get(tipo_plano, 'indefinido')
+    
+    def _obter_descricao_plano(self, tipo_plano):
+        """Obtém a descrição do plano"""
+        descricoes = {
+            'gratuito': 'Experimente gratuitamente com recursos básicos',
+            'trial': 'Período de teste com recursos limitados',
+            'promo': 'Acesso completo por 1 semana com ótimo custo-benefício',
+            'lite': 'Acesso completo por 1 mês - ideal para estudos regulares',
+            'premium': 'Acesso completo por 2 meses - melhor valor',
+            'premium_plus': 'Recursos avançados com macetes e modo foco',
+            'black': 'Plano completo com todos os recursos premium'
+        }
+        return descricoes.get(tipo_plano, 'Plano personalizado')
+    
+    def _obter_duracao_plano(self, tipo_plano):
+        """Obtém a duração do plano"""
+        if tipo_plano in ['gratuito', 'trial']:
+            return 'ilimitado'
+        elif tipo_plano == 'black':
+            return 'até 5 de dezembro de 2025'
+        else:
+            duracao = self.DURACAO_PLANOS.get(tipo_plano)
+            return f'{duracao} dias' if duracao else 'indefinido'
+    
+    def _plano_popular(self, tipo_plano):
+        """Verifica se o plano é popular"""
+        return tipo_plano in ['premium', 'black']
+    
+    def _formatar_recursos_lista(self, tipo_plano):
+        """Formata a lista de recursos do plano"""
+        recursos = self.RECURSOS_PLANOS.get(tipo_plano, {})
+        lista_recursos = []
+        
+        if recursos.get('questoes_limitadas'):
+            limite = recursos.get('limite_questoes', 3)
+            lista_recursos.append(f'✅ {limite} questões limitadas')
+        else:
+            lista_recursos.append('✅ Questões ilimitadas')
+        
+        recursos_map = {
+            'simulados': 'Simulados',
+            'relatorios': 'Relatórios',
+            'ranking': 'Ranking',
+            'suporte': 'Suporte',
+            'macetes': 'Macetes',
+            'modo_foco': 'Modo foco',
+            'redacao': 'Redação'
+        }
+        
+        for key, nome in recursos_map.items():
+            if key == 'questoes_limitadas':
+                continue
+            
+            if recursos.get(key, False):
+                lista_recursos.append(f'✅ {nome}')
+            else:
+                lista_recursos.append(f'❌ {nome}')
+        
+        # Recursos especiais para planos premium
+        if tipo_plano == 'black':
+            lista_recursos.extend([
+                '✅ Chat tira-dúvidas',
+                '✅ Pontos centrais',
+                '✅ Outras explorações'
+            ])
+        elif tipo_plano == 'premium_plus':
+            lista_recursos.append('✅ Todos os recursos anteriores')
+        
+        return lista_recursos
+    
     def obter_plano_usuario(self, user_id):
         """Obtém o plano atual do usuário"""
         try:

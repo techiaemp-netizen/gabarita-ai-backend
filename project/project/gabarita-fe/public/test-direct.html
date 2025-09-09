@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Teste CSS Direto - Gabarita AI</title>
+    <style>
+        /* Reset e estilos básicos */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: linear-gradient(45deg, #ff6b6b, #ee5a24);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+        
+        .content {
+            padding: 30px;
+        }
+        
+        .test-section {
+            margin-bottom: 30px;
+            padding: 20px;
+            border-radius: 8px;
+            border-left: 4px solid #3498db;
+            background: #f8f9fa;
+        }
+        
+        .test-section h2 {
+            color: #2c3e50;
+            margin-bottom: 15px;
+            font-size: 1.5rem;
+        }
+        
+        .success {
+            background: #d4edda;
+            border-color: #28a745;
+            color: #155724;
+        }
+        
+        .warning {
+            background: #fff3cd;
+            border-color: #ffc107;
+            color: #856404;
+        }
+        
+        .error {
+            background: #f8d7da;
+            border-color: #dc3545;
+            color: #721c24;
+        }
+        
+        .button {
+            display: inline-block;
+            padding: 12px 24px;
+            margin: 8px;
+            background: #3498db;
+            color: white;
+            text-decoration: none;
+            border-radius: 6px;
+            transition: all 0.3s ease;
+            font-weight: 500;
+        }
+        
+        .button:hover {
+            background: #2980b9;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(52, 152, 219, 0.3);
+        }
+        
+        .button.green {
+            background: #27ae60;
+        }
+        
+        .button.green:hover {
+            background: #229954;
+        }
+        
+        .button.red {
+            background: #e74c3c;
+        }
+        
+        .button.red:hover {
+            background: #c0392b;
+        }
+        
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin: 20px 0;
+        }
+        
+        .card {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            border: 1px solid #e1e8ed;
+            transition: transform 0.2s ease;
+        }
+        
+        .card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+        }
+        
+        .status-indicator {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            display: inline-block;
+            margin-right: 10px;
+        }
+        
+        .status-green {
+            background: #27ae60;
+        }
+        
+        .status-red {
+            background: #e74c3c;
+        }
+        
+        .status-yellow {
+            background: #f39c12;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🎨 Teste CSS Direto</h1>
+            <p>Verificando se CSS inline funciona corretamente</p>
+        </div>
+        
+        <div class="content">
+            <div class="test-section success">
+                <h2>✅ CSS Inline Funcionando</h2>
+                <p>Se você está vendo este card verde com estilos aplicados, o CSS inline está funcionando perfeitamente!</p>
+            </div>
+            
+            <div class="test-section warning">
+                <h2>⚠️ Problema Identificado</h2>
+                <p>O problema parece estar especificamente com o Tailwind CSS não sendo aplicado nas páginas do Next.js.</p>
+            </div>
+            
+            <div class="test-section error">
+                <h2>❌ Status Atual</h2>
+                <p>A página principal ainda não está exibindo os estilos Tailwind corretamente.</p>
+            </div>
+            
+            <div class="test-section">
+                <h2>🔗 Links de Teste</h2>
+                <div>
+                    <a href="/" class="button">← Página Principal</a>
+                    <a href="/test-styles" class="button green">Teste Tailwind</a>
+                    <a href="/debug.html" class="button red">Debug CSS</a>
+                </div>
+            </div>
+            
+            <div class="test-section">
+                <h2>📊 Status dos Componentes</h2>
+                <div class="grid">
+                    <div class="card">
+                        <h3><span class="status-indicator status-green"></span>CSS Inline</h3>
+                        <p>Funcionando perfeitamente</p>
+                    </div>
+                    <div class="card">
+                        <h3><span class="status-indicator status-red"></span>Tailwind CSS</h3>
+                        <p>Não está sendo aplicado</p>
+                    </div>
+                    <div class="card">
+                        <h3><span class="status-indicator status-yellow"></span>Next.js</h3>
+                        <p>Servidor rodando</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="test-section">
+                <h2>🛠️ Próximos Passos</h2>
+                <ol>
+                    <li>Verificar se o arquivo globals.css está sendo carregado</li>
+                    <li>Inspecionar o Network tab do DevTools</li>
+                    <li>Verificar se há conflitos de CSS</li>
+                    <li>Testar com uma instalação limpa do Tailwind</li>
+                </ol>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

@@ -1,0 +1,345 @@
+Relatório técnico: avaliação e amarração de contrato entre Front‑end e Back‑end
+1. Introdução
+
+O objetivo deste relatório é analisar e alinhar o contrato de comunicação entre o front‑end (FE) e o back‑end (BE) do projeto Gabarita AI, hospedado nos repositórios GitHub gabarita-ai-frontend e gabarita-ai-backend. A análise abrangeu a leitura do código dos repositórios via conector GitHub, levantamento dos endpoints existentes no back‑end e confronto com o arquivo de mapeamento de contratos do front‑end (MAPEAMENTO_CONTRATOS_FRONTEND.md). O resultado é um conjunto de recomendações para corrigir divergências, padronizar rotas e garantir que as integrações entre FE e BE sejam robustas e consistentes.
+
+2. Visão geral dos repositórios
+2.1 Back‑end (Python/Flask)
+
+O back‑end utiliza Python 3.11 com o framework Flask e estrutura modular baseada em blueprints
+GitHub
+.
+
+As rotas são registradas em src/main.py sob o prefixo /api e incluem módulos como auth, usuarios, questoes, planos, opcoes, payments, jogos, news, simulados e performance
+GitHub
+.
+
+O aplicativo configura CORS para permitir chamadas do domínio do front‑end e define rotas de health check (/health) para monitoramento
+GitHub
+.
+
+O projeto contém descrições básicas de variáveis de ambiente e dependências no README
+GitHub
+.
+
+2.2 Front‑end (React/TypeScript)
+
+O front‑end é escrito em React + TypeScript.
+
+As chamadas HTTP são centralizadas em services/api.ts, que utiliza Axios com interceptadores para adicionar tokens, implementar retry e circuit breaker, e gerar logs
+GitHub
+.
+
+O arquivo MAPEAMENTO_CONTRATOS_FRONTEND.md documenta as funções de serviço e os endpoints esperados
+GitHub
+.
+
+A camada de modelos (types/index.ts) define interfaces como User, Plan e Question com campos em inglês
+GitHub
+.
+
+O utilitário utils/fieldMapper.ts implementa um mapeamento bidirecional de campos entre português e inglês; isto é usado para adaptar objetos enviados/recebidos entre FE e BE
+GitHub
+.
+
+3. Mapeamento de contratos existente no front‑end
+
+O arquivo MAPEAMENTO_CONTRATOS_FRONTEND.md descreve as funções que o front‑end utiliza e os endpoints que ele espera. A tabela abaixo resume as funções principais e a rota esperada pelo FE
+GitHub
+:
+
+Função no FE (serviço)	Rota esperada pelo FE	Método	Observação
+login()	/api/auth/login	POST	Envia e‑mail/senha.
+signup()	/api/auth/signup	POST	Cadastro.
+logout()	/api/auth/logout	POST	Invalida token.
+getUser(id)	/api/user/{id}	GET	Busca usuário pelo ID.
+updateUser(id)	/api/user/{id}	PUT	Atualiza usuário.
+getPlans()	/api/planos	GET	Lista planos.
+subscribePlan()	/api/planos/subscribe	POST	Contratar plano.
+generateQuestions()	/api/questoes/gerar	POST	Gerar questão.
+getQuestions()	/api/questoes	GET	Listar questões.
+submitAnswer()	/api/questoes/responder	POST	Enviar resposta.
+getOptions(type)	/api/opcoes/{type}	GET	Obter opções (ex.: cargos).
+processPayment()	/api/payments/process	POST	Processar pagamento.
+
+O mapeamento acima serve como contrato pretendido; qualquer divergência detectada entre a implementação do BE e essa tabela exige ajustes.
+
+4. Análise de endpoints implementados no back‑end
+
+A seguir são descritos os módulos do back‑end relevantes para o contrato, com comparativo entre o esperado pelo FE e o implementado.
+
+4.1 Módulo de autenticação (src/routes/auth.py)
+
+Endpoints implementados:
+
+POST /entrar: login (Português).
+
+POST /signup: cadastro (inglês) e POST /cadastrar: cadastro (Português)
+GitHub
+.
+
+POST /logout e POST /sair: logout
+GitHub
+.
+
+GET /verificar-token, POST /complete-profile, POST /google-auth, POST /renovar-token
+GitHub
+.
+
+Divergências:
+
+A rota de login implementada é /entrar, enquanto o FE espera /api/auth/login. Não existe alias /login no BE
+GitHub
+.
+
+A rota de refresh token (/renovar-token) não está mapeada no FE, mas é necessária para manter sessões.
+
+Sugestão: Criar alias /login no BE ou atualizar o FE para usar /entrar; manter ambos para retro‑compatibilidade. Documentar token refresh no contrato.
+
+4.2 Módulo de usuários (src/routes/usuarios.py)
+
+Endpoints implementados:
+
+@usuarios_bp.route('/ ', methods=['GET']): rota para obter usuário por ID, mas com espaço em branco e sem /<user_id>; isto torna a rota inválida
+GitHub
+.
+
+@usuarios_bp.route('/perfil', methods=['GET','PUT']): obtém ou atualiza o perfil do usuário autenticado
+GitHub
+.
+
+Divergências:
+
+O FE espera /api/user/{id} (GET/PUT), mas o BE não implementa rota com ID; a atualização/consulta é feita via /api/usuarios/perfil sem parâmetro.
+
+O alias @app.route('/api/user/ ', methods=['GET']) em main.py tenta criar equivalente, mas também possui espaço e não captura o parâmetro
+GitHub
+.
+
+Sugestão: Corrigir rota no BE para @usuarios_bp.route('/<int:user_id>', methods=['GET']) e @usuarios_bp.route('/<int:user_id>', methods=['PUT']) ou atualizar FE para usar /api/usuarios/perfil. Remover espaços adicionais.
+
+4.3 Módulo de planos (src/routes/planos.py)
+
+Endpoints implementados:
+
+GET /: lista todos os planos (equivale a /api/planos).
+
+GET /usuario: retorna o plano ativo do usuário autenticado.
+
+POST /subscribe: ativa um plano para o usuário
+GitHub
+.
+
+Divergências:
+
+O FE espera subscribePlan() em /api/planos/subscribe, que existe.
+
+A rota /usuario para consultar o plano atual não está documentada no FE; ela pode ser importante para exibir a assinatura atual.
+
+4.4 Módulo de questões (src/routes/questoes.py)
+
+Endpoints implementados:
+
+POST /gerar: gera uma questão para o usuário (recebe cargo, bloco, etc.)
+GitHub
+.
+
+POST /responder: envia resposta de questão e atualiza estatísticas
+GitHub
+.
+
+Demais rotas como /estatisticas, /historico, /respostas, /gerar-lote (listas de questões) estão comentadas ou incompletas. Não há rota GET /questoes para listar questões
+GitHub
+.
+
+Divergências:
+
+O FE prevê getQuestions() usando GET /api/questoes, mas tal rota não existe; o BE utiliza geração sob demanda e estatísticas por usuário.
+
+Há funcionalidade de estatísticas que poderia ser exposta ao FE, mas não está mapeada.
+
+Sugestão: Implementar GET /questoes no BE retornando questões geradas/histórico ou remover função getQuestions() do FE.
+
+4.5 Módulo de opções (src/routes/opcoes.py)
+
+Endpoints implementados:
+
+GET /cargos-blocos: retorna combinação de cargos e blocos.
+
+GET /blocos-cargos, GET /diagnostico e GET /cargos/<cargo>
+GitHub
+.
+
+Divergências:
+
+O FE espera um endpoint genérico /api/opcoes/{type}, onde type pode ser cargos, blocos, etc. O BE fornece rotas específicas e não parametrizadas.
+
+Sugestão: Criar rota genérica no BE (/api/opcoes/<tipo>) que redireciona para a função apropriada ou adaptar FE para chamar rotas específicas; p.ex., getOptions('cargos-blocos') → /api/opcoes/cargos-blocos.
+
+4.6 Módulo de pagamentos (src/routes/payments.py)
+
+Endpoints implementados:
+
+GET /planos: lista planos disponíveis para pagamento
+GitHub
+.
+
+POST /process: processa o pagamento via Mercado Pago
+GitHub
+.
+
+Divergências:
+
+O FE mapeia processPayment() em /api/payments/process, que existe.
+
+A rota /planos do BE não está documentada no FE; pode substituir o getPlans() do módulo de planos ou complementar.
+
+4.7 Outros módulos
+
+News/Jogos/Simulados/Performance: O BE registra blueprints adicionais, mas suas rotas não foram analisadas em detalhes. É recomendável verificar e documentar esses endpoints antes de consumo pelo FE.
+
+5. Problemas gerais identificados
+
+Inconsistências de nomenclatura de rotas: várias rotas diferem entre FE e BE (ex.: /login vs /entrar, /user/{id} vs /usuarios/perfil).
+
+Rotas com espaços em branco: algumas rotas no BE têm um espaço no final ('/ '), impedindo o correto registro
+GitHub
+.
+
+Ausência de rotas esperadas: não há GET /questoes nem /opcoes/{type}.
+
+Recursos não documentados no FE: rotas como /renovar-token, /usuarios/usuario, /payments/planos são implementadas, mas não mapeadas no FE.
+
+Mapeamento de campos: o FE utiliza campos em inglês enquanto o BE utiliza português; o utilitário fieldMapper.ts provê conversão bidirecional
+GitHub
+, porém a equipe deve assegurar que todas as requisições passem por esse mapeador.
+
+Formato de resposta: as rotas do BE retornam objetos variados (às vezes apenas dados, às vezes com chaves message ou status). O FE sugere um formato padrão contendo success, data e message, mas o BE nem sempre segue isso.
+
+Tratamento de token: interceptadores no FE esperam rotas /auth/refresh-token ou /auth/renovar-token, mas a implementação no BE usa /renovar-token
+GitHub
+.
+
+6. Requisitos de ajuste no back‑end
+
+Para alinhar o contrato, recomenda‑se que a equipe do back‑end implemente as seguintes ações:
+
+Padronizar rotas de autenticação:
+
+Adicionar rota POST /login como alias de /entrar.
+
+Adicionar rota POST /refresh-token como alias de /renovar-token.
+
+Documentar rotas /signup e /logout em inglês e português para retro‑compatibilidade.
+
+Corrigir rotas de usuários:
+
+Ajustar @usuarios_bp.route('/ ', ...) para @usuarios_bp.route('/<int:user_id>', ...).
+
+Criar alias /api/user/<user_id> para compatibilidade com FE.
+
+Remover espaços em branco nas rotas e garantir captura de parâmetros.
+
+Unificar busca e atualização de perfil:
+
+Permitir GET/PUT em /usuarios/perfil (usuário autenticado).
+
+Permitir GET/PUT em /usuarios/<user_id> para operações administrativas.
+
+Ajustar FE conforme escolha.
+
+Implementar GET /questoes ou ajustar estratégia:
+
+Se o FE precisa de histórico de questões, criar rota GET /questoes que retorna as questões geradas anteriormente; caso contrário, remover função getQuestions() e usar somente geração via POST /gerar.
+
+Criar rota genérica de opções:
+
+Implementar /opcoes/<tipo> que direciona para as funções existentes (cargos-blocos, diagnostico, etc.).
+
+Validar tipo e retornar erro 404 para parâmetros desconhecidos.
+
+Padronizar formato de resposta:
+
+Implementar um wrapper que retorne objetos no formato { "success": bool, "data": any, "message": string }.
+
+Ajustar todos os manipuladores de exceção para seguir esse padrão, retornando códigos HTTP apropriados (200, 201, 400, 401, 403, 404, 500).
+
+Documentação e testes:
+
+Criar documentação Swagger ou OpenAPI para expor todos os endpoints e seus contratos.
+
+Escrever testes de integração cobrindo rotas recém‑implementadas, verificando parâmetros obrigatórios e respostas.
+
+7. Requisitos de ajuste no front‑end
+
+Atualizar endpoints conforme o BE:
+
+Se o BE acrescentar alias /login e /refresh-token, manter FE apontando para esses endpoints. Caso contrário, alterar o mapeamento para /entrar e /renovar-token.
+
+Atualizar funções getUser() e updateUser() para chamar /api/usuarios/perfil (usuário atual) ou /api/usuarios/<id>, conforme ajuste no BE.
+
+Adaptar getQuestions() caso o BE implemente um GET; se não, remover a função e utilizar resposta de /gerar.
+
+Ajustar getOptions(type) para chamar rotas específicas (/cargos-blocos, /diagnostico, etc.) enquanto a rota genérica não existir.
+
+Utilizar o fieldMapper em todas as requisições:
+
+Garantir que os objetos enviados para o BE tenham campos traduzidos para português utilizando objectToPortuguese()
+GitHub
+.
+
+Após receber resposta do BE, converter para inglês com objectToEnglish() antes de armazenar no estado do FE.
+
+Tratar tokens:
+
+Verificar se a rota de refresh de token foi renomeada; ajustar interceptador no services/api.ts para ela.
+
+Caso o BE passe a retornar Authorization como header, ajustar interceptador para capturar e armazenar token atualizado.
+
+Adequar tratamento de erros:
+
+Basear‑se no formato padronizado { success, data, message } e exibir mensagens de forma consistente.
+
+Implementar lógica de redirecionamento para login quando o token expirar (status 401).
+
+Atualizar documentação interna:
+
+Manter MAPEAMENTO_CONTRATOS_FRONTEND.md sincronizado com as rotas reais.
+
+Documentar novas rotas descobertas, como /usuarios/usuario e /payments/planos, se decidirem usá‑las.
+
+8. Integração e mapeamento de campos
+
+Para garantir que o FE e o BE conversem na mesma “língua”, recomenda‑se um mecanismo de mapeamento de campos na camada de serviço do FE e, opcionalmente, no BE:
+
+Uso do fieldMapper.ts:
+
+O FE já define um objeto PT_TO_EN que mapeia campos em português para inglês e um inverso EN_TO_PT
+GitHub
+. Esse recurso deve ser aplicado a todas as requisições e respostas.
+
+A lista deve ser mantida atualizada conforme novos campos surgirem, evitando divergências.
+
+Padronização no BE:
+
+Embora o BE utilize português internamente, pode expor endpoints com campos em inglês ou duplicar chaves; alternativamente, pode adicionar um middleware que converta request/responses.
+
+Padronizar nomes de variáveis nos modelos do BE (por exemplo, usuario_id → user_id) facilita entendimento para equipes bilíngues.
+
+9. Checklist de ações para amarração do contrato
+Nº	Ação	Responsável	Prioridade
+1	Criar alias /api/auth/login e /api/auth/refresh-token no BE ou alterar FE para /entrar e /renovar-token.	Back‑end / DevOps	Alta
+2	Corrigir rotas de usuários (/usuarios/<id>, /user/<id>) sem espaços e implementar GET/PUT para obter/atualizar usuário.	Back‑end	Alta
+3	Implementar GET /questoes ou remover função getQuestions() do FE.	Back‑end / Front‑end	Média
+4	Implementar rota genérica /opcoes/<tipo> ou atualizar FE para usar rotas específicas.	Back‑end / Front‑end	Média
+5	Padronizar formato de resposta {success, data, message} em todo o BE.	Back‑end	Alta
+6	Revisar interceptadores do FE e ajustar refresh de token, tratamento de erros e mensagens.	Front‑end	Alta
+7	Atualizar MAPEAMENTO_CONTRATOS_FRONTEND.md conforme mudanças.	Front‑end	Média
+8	Criar documentação Swagger/OpenAPI para o BE e hospedar em rota /docs ou similar.	Back‑end	Média
+9	Escrever testes automatizados de integração cobrindo novas rotas, parâmetros e retornos.	Back‑end / QA	Média
+10	Atualizar utilitário fieldMapper.ts com novos campos e garantir uso consistente.	Front‑end	Baixa
+10. Considerações finais
+
+A comunicação eficaz entre o front‑end e o back‑end exige não apenas o alinhamento de nomes de rotas e métodos, mas também a padronização de formatos de dados e a documentação clara para as equipes de desenvolvimento. As divergências encontradas — como rotas ausentes, nomes de rotas inconsistentes e campos em idiomas diferentes — podem causar falhas silenciosas e dificultar a manutenção.
+
+Este relatório detalhou cada problema encontrado e propôs soluções específicas, com prioridades atribuídas. A implementação dessas recomendações irá garantir que o contrato FE–BE seja robusto e que novas funcionalidades possam ser adicionadas com menos atrito. Recomenda‑se a criação de um contrato de API versionado (OpenAPI) para formalizar as expectativas e evitar futuras inconsistências.

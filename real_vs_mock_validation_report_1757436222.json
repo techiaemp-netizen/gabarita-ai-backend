@@ -1,0 +1,375 @@
+{
+  "timestamp": "2025-09-09T13:43:18.441746",
+  "base_url": "http://localhost:5000",
+  "tests": [
+    {
+      "endpoint": "/api/planos",
+      "status": "MOCK_DATA",
+      "timestamp": "2025-09-09T13:43:24.567695",
+      "details": {
+        "response_code": 200,
+        "data_count": 1,
+        "mock_indicators": [
+          "simulado"
+        ],
+        "is_hardcoded": false,
+        "sample_data": {
+          "data": [
+            {
+              "descricao": "Experimente gratuitamente com recursos básicos",
+              "duracao": "ilimitado",
+              "id": "gratuito",
+              "nome": "Gratuito/Trial",
+              "periodo": "ilimitado",
+              "popular": false,
+              "preco": 0.0,
+              "recursos": [
+                "✅ 3 questões limitadas",
+                "❌ Simulados",
+                "❌ Relatórios",
+                "❌ Ranking",
+                "❌ Suporte",
+                "❌ Macetes",
+                "❌ Modo foco",
+                "❌ Redação"
+              ],
+              "tipo": "gratuito"
+            },
+            {
+              "descricao": "Acesso completo por 1 semana com ótimo custo-benefício",
+              "duracao": "7 dias",
+              "id": "promo",
+              "nome": "Promo (Semanal)",
+              "periodo": "7 dias",
+              "popular": false,
+              "preco": 5.9,
+              "recursos": [
+                "✅ Questões ilimitadas",
+                "✅ Simulados",
+                "✅ Relatórios",
+                "✅ Ranking",
+                "✅ Suporte",
+                "❌ Macetes",
+                "❌ Modo foco",
+                "❌ Redação"
+              ],
+              "tipo": "promo"
+            },
+            {
+              "descricao": "Acesso completo por 1 mês - ideal para estudos regulares",
+              "duracao": "30 dias",
+              "id": "lite",
+              "nome": "Lite (Mensal)",
+              "periodo": "30 dias",
+              "popular": false,
+              "preco": 14.9,
+              "recursos": [
+                "✅ Questões ilimitadas",
+                "✅ Simulados",
+                "✅ Relatórios",
+                "✅ Ranking",
+                "✅ Suporte",
+                "❌ Macetes",
+                "❌ Modo foco",
+                "❌ Redação"
+              ],
+              "tipo": "lite"
+            },
+            {
+              "descricao": "Acesso completo por 2 meses - melhor valor",
+              "duracao": "60 dias",
+              "id": "premium",
+              "nome": "Premium (Bimestral)",
+              "periodo": "60 dias",
+              "popular": true,
+              "preco": 20.0,
+              "recursos": [
+                "✅ Questões ilimitadas",
+                "✅ Simulados",
+                "✅ Relatórios",
+                "✅ Ranking",
+                "✅ Suporte",
+                "❌ Macetes",
+                "❌ Modo foco",
+                "❌ Redação"
+              ],
+              "tipo": "premium"
+            },
+            {
+              "descricao": "Recursos avançados com macetes e modo foco",
+              "duracao": "60 dias",
+              "id": "premium_plus",
+              "nome": "Premium Plus",
+              "periodo": "60 dias",
+              "popular": false,
+              "preco": 40.0,
+              "recursos": [
+                "✅ Todos os recursos anteriores",
+                "✅ Macetes",
+                "✅ Modo foco",
+                "❌ Redação"
+              ],
+              "tipo": "premium_plus"
+            },
+            {
+              "descricao": "Plano completo com todos os recursos premium",
+              "duracao": "até 5 de dezembro de 2025",
+              "id": "black",
+              "nome": "Black CNU ⭐",
+              "periodo": "até 5 de dezembro de 2025",
+              "popular": true,
+              "preco": 70.0,
+              "recursos": [
+                "✅ Todos os recursos",
+                "✅ Macetes",
+                "✅ Modo foco",
+                "✅ Redação",
+                "✅ Chat tira-dúvidas",
+                "✅ Pontos centrais",
+                "✅ Outras explorações"
+              ],
+              "tipo": "black"
+            }
+          ],
+          "success": true
+        }
+      }
+    },
+    {
+      "endpoint": "/api/jogos",
+      "status": "REAL_DATA",
+      "timestamp": "2025-09-09T13:43:28.621429",
+      "details": {
+        "response_code": 200,
+        "mock_indicators": [],
+        "has_mock_functions": false,
+        "sample_data": {
+          "data": {
+            "jogos": [
+              {
+                "descricao": "Descubra a palavra relacionada ao seu bloco de concurso",
+                "disponivel": false,
+                "id": "forca",
+                "motivo": "Login necessário",
+                "nome": "Jogo da Forca"
+              },
+              {
+                "descricao": "Responda questões de múltipla escolha",
+                "disponivel": false,
+                "id": "quiz",
+                "motivo": "Login necessário",
+                "nome": "Quiz Rápido"
+              },
+              {
+                "descricao": "Encontre os pares de conceitos relacionados",
+                "disponivel": false,
+                "id": "memoria",
+                "motivo": "Login necessário",
+                "nome": "Jogo da Memória"
+              },
+              {
+                "descricao": "Complete as palavras cruzadas com termos do seu bloco",
+                "disponivel": false,
+                "id": "palavras_cruzadas",
+                "motivo": "Login necessário",
+                "nome": "Palavras Cruzadas"
+              }
+            ],
+            "total": 4
+          },
+          "message": "Lista de jogos obtida com sucesso",
+          "success": true
+        }
+      }
+    },
+    {
+      "endpoint": "/api/news",
+      "status": "MOCK_DATA",
+      "timestamp": "2025-09-09T13:43:30.654709",
+      "details": {
+        "response_code": 200,
+        "data_count": 1,
+        "mock_indicators": [
+          "simulado"
+        ],
+        "is_clearly_mock": false,
+        "sample_data": {
+          "data": [
+            {
+              "category": "Concursos",
+              "content": "O Ministério da Gestão e da Inovação em Serviços Públicos (MGI) divulgou o novo cronograma do Concurso Nacional Unificado (CNU) 2025. As provas estão previstas para acontecer no segundo semestre do ano, com inscrições abertas a partir de março. O concurso oferecerá mais de 6.000 vagas em diversos órgãos federais.",
+              "id": "news_1",
+              "imageUrl": null,
+              "publishedAt": "2025-09-09T11:02:54.632865",
+              "source": "Portal do Governo Federal",
+              "summary": "Ministério da Gestão anuncia cronograma atualizado com provas previstas para o segundo semestre",
+              "title": "CNU 2025: Novas datas divulgadas para o Concurso Nacional Unificado"
+            },
+            {
+              "category": "Vestibular",
+              "content": "O Instituto Nacional de Estudos e Pesquisas Educacionais Anísio Teixeira (INEP) anunciou o cronograma oficial do ENEM 2025. Entre as principais mudanças estão a ampliação do prazo de inscrições e melhorias no sistema de correção das redações. As provas serão aplicadas nos dias 2 e 9 de novembro.",
+              "id": "news_2",
+              "imageUrl": null,
+              "publishedAt": "2025-09-09T08:02:54.632865",
+              "source": "INEP",
+              "summary": "INEP apresenta calendário oficial e novidades para a edição deste ano do exame",
+              "title": "ENEM 2025: Cronograma e principais mudanças anunciadas"
+            },
+            {
+              "category": "Concursos",
+              "content": "Segundo informações de bastidores, o Banco do Brasil está finalizando os preparativos para lançar um novo concurso público com aproximadamente 4.000 vagas para diversos cargos. O edital deve ser publicado ainda no primeiro trimestre de 2025, com provas previstas para o meio do ano.",
+              "id": "news_3",
+              "imageUrl": null,
+              "publishedAt": "2025-09-09T05:02:54.632865",
+              "source": "Folha Dirigida",
+              "summary": "Fontes indicam que novo concurso do BB está em fase final de preparação",
+              "title": "Concurso Banco do Brasil: Edital com 4.000 vagas deve sair em breve"
+            },
+            {
+              "category": "Dicas",
+              "content": "Professores e coaches especializados em concursos públicos revelam as melhores técnicas de estudo para 2025. Entre as dicas estão o uso de mapas mentais, técnicas de memorização ativa e a importância de simulados regulares. A organização do tempo e o equilíbrio entre disciplinas também são fundamentais.",
+              "id": "news_4",
+              "imageUrl": null,
+              "publishedAt": "2025-09-09T01:02:54.632865",
+              "source": "Gabarita AI",
+              "summary": "Especialistas compartilham estratégias eficazes para maximizar o aprendizado",
+              "title": "Dicas de Estudo: Como otimizar sua preparação para concursos"
+            },
+            {
+              "category": "Concursos",
+              "content": "O Instituto Nacional do Seguro Social (INSS) enfrenta um déficit significativo de servidores, o que aumenta as expectativas para a abertura de um novo concurso público. Especialistas estimam que podem ser oferecidas entre 1.000 e 2.000 vagas para técnico e analista do seguro social.",
+              "id": "news_5",
+              "imageUrl": null,
+              "publishedAt": "2025-09-08T13:02:54.632865",
+              "source": "JC Concursos",
+              "summary": "Déficit de servidores pode motivar abertura de concurso ainda em 2025",
+              "title": "Concurso INSS: Expectativa de novo edital cresce entre candidatos"
+            }
+          ],
+          "success": true,
+          "total": 5
+        }
+      }
+    },
+    {
+      "endpoint": "/api/opcoes",
+      "status": "REAL_DATA",
+      "timestamp": "2025-09-09T13:43:32.698770",
+      "details": {
+        "response_code": 200,
+        "mock_indicators": [],
+        "sample_data": {
+          "data": {
+            "blocos": [
+              "Bloco 4 - Engenharias e Arquitetura",
+              "Bloco 6 - Desenvolvimento Socioeconômico",
+              "Bloco 8 - Intermediário - Saúde",
+              "Bloco 3 - Ciências, Dados e Tecnologia",
+              "Bloco 2 - Cultura e Educação",
+              "Bloco 7 - Justiça e Defesa",
+              "Bloco 9 - Intermediário - Regulação",
+              "Bloco 5 - Administração",
+              "Bloco 1 - Seguridade Social"
+            ],
+            "cargos": [
+              "Enfermeiro",
+              "Médico",
+              "Assistente Social",
+              "Nutricionista",
+              "Psicólogo",
+              "Pesquisador",
+              "Tecnologista",
+              "Analista do Seguro Social",
+              "Biólogo",
+              "Farmacêutico",
+              "Fisioterapeuta",
+              "Fonoaudiólogo",
+              "Terapeuta Ocupacional",
+              "Técnico em Comunicação Social",
+              "Técnico em Documentação",
+              "Técnico em Assuntos Culturais",
+              "Analista Cultural",
+              "Técnico em Assuntos Educacionais",
+              "Especialista em Geologia e Geofísica",
+              "Analista de Tecnologia Militar",
+              "Analista de Ciência e Tecnologia",
+              "Especialista em Regulação de Petróleo",
+              "Engenheiro de Tecnologia Militar",
+              "Arquiteto",
+              "Engenheiro",
+              "Engenheiro Agrônomo",
+              "Analista Técnico-Administrativo",
+              "Contador",
+              "Analista Técnico de Desenvolvimento Socioeconômico",
+              "Especialista em Regulação de Petróleo e Derivados",
+              "Especialista em Regulação da Atividade Cinematográfica",
+              "Analista Técnico de Justiça e Defesa",
+              "Técnico em Atividades Médico-Hospitalares",
+              "Técnico de Enfermagem",
+              "Técnico em Pesquisa e Investigação Biomédica",
+              "Técnico em Radiologia",
+              "Técnico em Regulação de Aviação Civil",
+              "Técnico em Atividades de Mineração",
+              "Técnico em Regulação de Petróleo",
+              "Técnico em Regulação de Saúde Suplementar",
+              "Técnico em Regulação de Telecomunicações",
+              "Técnico em Regulação de Transportes Aquaviários",
+              "Técnico em Regulação de Transportes Terrestres",
+              "Técnico em Regulação e Vigilância Sanitária",
+              "Técnico em Regulação da Atividade Cinematográfica"
+            ],
+            "estatisticas": {
+              "total_blocos": 9,
+              "total_cargos": 45,
+              "total_conteudos": 324
+            },
+            "tipos_opcoes": [
+              "cargos-blocos",
+              "blocos-cargos",
+              "diagnostico"
+            ]
+          },
+          "message": "Opções do sistema obtidas com sucesso",
+          "success": true
+        }
+      }
+    },
+    {
+      "endpoint": "/api/questoes/gerar",
+      "status": "ERROR",
+      "timestamp": "2025-09-09T13:43:32.698770",
+      "details": {
+        "error": "Não autenticado"
+      }
+    }
+  ],
+  "summary": {
+    "total_tests": 5,
+    "real_data": 2,
+    "mock_data": 2,
+    "errors": 1,
+    "warnings": []
+  },
+  "performance": [
+    {
+      "endpoint": "/api/planos",
+      "response_time_ms": 2041.39,
+      "status_code": 200
+    },
+    {
+      "endpoint": "/api/jogos",
+      "response_time_ms": 4050.53,
+      "status_code": 200
+    },
+    {
+      "endpoint": "/api/news",
+      "response_time_ms": 2060.46,
+      "status_code": 200
+    },
+    {
+      "endpoint": "/api/opcoes",
+      "response_time_ms": 2050.75,
+      "status_code": 200
+    }
+  ]
+}

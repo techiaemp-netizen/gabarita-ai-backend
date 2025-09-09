@@ -31,6 +31,79 @@ except ImportError:
 
 jogos_bp = Blueprint('jogos', __name__)
 
+@jogos_bp.route('/', methods=['GET'])
+@jogos_bp.route('/api/jogos', methods=['GET'])
+def get_jogos():
+    """Endpoint principal para listar jogos disponíveis"""
+    try:
+        usuario_id = request.args.get('usuario_id')
+        
+        # Se não tiver usuario_id, retornar lista básica
+        if not usuario_id:
+            jogos_basicos = []
+            for jogo_id, config in JOGOS_CONFIG.items():
+                jogos_basicos.append({
+                    'id': jogo_id,
+                    'nome': config['nome'],
+                    'descricao': config['descricao'],
+                    'disponivel': False,
+                    'motivo': 'Login necessário'
+                })
+            
+            return jsonify({
+                'success': True,
+                'data': {
+                    'jogos': jogos_basicos,
+                    'total': len(jogos_basicos)
+                },
+                'message': 'Lista de jogos obtida com sucesso'
+            }), 200
+        
+        # Buscar plano do usuário
+        plano_usuario = obter_plano_usuario(usuario_id)
+        
+        jogos_disponiveis = []
+        for jogo_id, config in JOGOS_CONFIG.items():
+            if plano_usuario in config['planos_permitidos']:
+                jogos_disponiveis.append({
+                    'id': jogo_id,
+                    'nome': config['nome'],
+                    'descricao': config['descricao'],
+                    'disponivel': True,
+                    'configuracao': {
+                        'max_tentativas': config.get('max_tentativas'),
+                        'tempo_limite': config.get('tempo_limite'),
+                        'pontos_acerto': config.get('pontos_acerto'),
+                        'pontos_erro': config.get('pontos_erro')
+                    }
+                })
+            else:
+                jogos_disponiveis.append({
+                    'id': jogo_id,
+                    'nome': config['nome'],
+                    'descricao': config['descricao'],
+                    'disponivel': False,
+                    'motivo': 'Upgrade para Premium necessário'
+                })
+        
+        return jsonify({
+            'success': True,
+            'data': {
+                'jogos': jogos_disponiveis,
+                'plano_atual': plano_usuario,
+                'total': len(jogos_disponiveis)
+            },
+            'message': 'Lista de jogos obtida com sucesso'
+        }), 200
+    
+    except Exception as e:
+        print(f"Erro ao obter jogos: {e}")
+        return jsonify({
+            'success': False,
+            'error': 'Erro interno do servidor',
+            'message': 'Erro ao obter lista de jogos'
+        }), 500
+
 # Configurações dos jogos
 JOGOS_CONFIG = {
     'forca': {
@@ -76,7 +149,10 @@ def listar_jogos():
     try:
         usuario_id = request.args.get('usuario_id')
         if not usuario_id:
-            return jsonify({'erro': 'ID do usuário é obrigatório'}), 400
+            return jsonify({
+                'success': False,
+                'error': 'ID do usuário é obrigatório'
+            }), 400
         
         # Buscar plano do usuário
         plano_usuario = obter_plano_usuario(usuario_id)
@@ -743,8 +819,7 @@ def obter_plano_usuario(usuario_id):
     """Obtém o plano do usuário"""
     if firebase_config.is_configured():
         try:
-            from firebase_admin import firestore
-            db = firestore.client()
+            db = firebase_config.get_db()
             
             user_ref = db.collection('usuarios').document(usuario_id)
             user_doc = user_ref.get()

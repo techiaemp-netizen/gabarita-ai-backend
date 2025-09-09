@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Teste CSS Direto</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="min-h-screen bg-gradient-to-br from-blue-500 to-purple-600 p-8">
+    <div class="max-w-4xl mx-auto">
+        <h1 class="text-4xl font-bold text-white mb-8 text-center">
+            Teste Direto do Tailwind CSS
+        </h1>
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div class="bg-white rounded-lg shadow-lg p-6">
+                <h2 class="text-xl font-semibold text-gray-800 mb-4">Card Branco</h2>
+                <p class="text-gray-600">Se você está vendo este card com fundo branco, o Tailwind está funcionando!</p>
+                <button class="mt-4 bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded transition-colors">
+                    Botão Azul
+                </button>
+            </div>
+            
+            <div class="bg-red-500 rounded-lg shadow-lg p-6">
+                <h2 class="text-xl font-semibold text-white mb-4">Card Vermelho</h2>
+                <p class="text-red-100">Este card deve ter fundo vermelho.</p>
+                <button class="mt-4 bg-white hover:bg-gray-100 text-red-500 px-4 py-2 rounded transition-colors">
+                    Botão Branco
+                </button>
+            </div>
+            
+            <div class="bg-green-500 rounded-lg shadow-lg p-6">
+                <h2 class="text-xl font-semibold text-white mb-4">Card Verde</h2>
+                <p class="text-green-100">Este card deve ter fundo verde.</p>
+                <button class="mt-4 bg-yellow-400 hover:bg-yellow-500 text-green-800 px-4 py-2 rounded transition-colors">
+                    Botão Amarelo
+                </button>
+            </div>
+        </div>
+        
+        <div class="mt-8 bg-white rounded-lg shadow-lg p-6">
+            <h2 class="text-2xl font-bold text-gray-800 mb-4">Status do CSS</h2>
+            <p class="text-lg text-green-600 font-semibold">✅ Se você está vendo cores e estilos, o Tailwind CSS está funcionando!</p>
+            <p class="text-lg text-red-600 font-semibold">❌ Se tudo está branco/preto, há um problema com o CSS.</p>
+        </div>
+        
+        <div class="mt-8 text-center">
+            <a href="/" class="inline-block bg-white hover:bg-gray-100 text-blue-600 px-6 py-3 rounded-lg shadow transition-colors">
+                ← Voltar para Home
+            </a>
+        </div>
+    </div>
+</body>
+</html>

@@ -1,0 +1,260 @@
+conferi agora nos repos públicos. No código da branch master do backend ainda vejo itens pendentes, então não dá pra carimbar 100% do FE/BE depois do deploy só com o que está no GitHub. Eis o que encontrei e o que falta checar:
+
+Backend (master) — o que está pendente (no código)
+
+opcoes.py: as duas rotas de detalhe ainda não têm o placeholder no path. Estão assim:
+@opcoes_bp.route('/cargos/', ...) def get_cargos_por_bloco(bloco): e
+@opcoes_bp.route('/blocos/', ...) def get_blocos_por_cargo(cargo):
+O correto é '/cargos/<bloco>' e '/blocos/<cargo>'. 
+GitHub
+
+Alias de usuário em main.py: segue registrado como @app.route('/api/user/', ...) def user_alias(user_id): (sem <user_id> no path), então não captura o parâmetro. O correto é @app.route('/api/user/<user_id>', ...). Além disso, há import relativo (from .routes.questoes ...) dentro do próprio main.py, o que pode falhar dependendo de como o app sobe. 
+GitHub
+
+Payments (webhook/status): não consegui abrir o conteúdo do arquivo no viewer do GitHub agora para confirmar se a notification_url já está em /api/payments/webhook e se a rota de status está com '/status/<payment_id>'. Precisa conferir no repo/branch que está em produção. (O arquivo de payments não renderizou na interface agora; por isso não posso afirmar.) 
+GitHub
+
+Observação: pode haver uma branch de fix onde isso está certo, mas na master pública esses pontos acima ainda aparecem desse jeito.
+
+Frontend
+
+O FE está configurado para consumir ${NEXT_PUBLIC_API_URL}/api/... (README), então basta o BE estar correto e a env estar setada na Vercel para funcionar. 
+GitHub
+
+O link do deploy Vercel está no repo, mas como a página é SPA (“Carregando...”), não dá pra validar chamadas de API só abrindo HTML estático aqui. 
+gabarita-ai-frontend-pied.vercel.app
+
+O que fazer agora (curto e certeiro)
+1) Corrigir/confirmar no branch que está em produção
+
+src/routes/opcoes.py
+Trocar os dois decorators finais:
+
+@opcoes_bp.route('/cargos/<bloco>', methods=['GET'])
+def get_cargos_por_bloco(bloco): ...
+@opcoes_bp.route('/blocos/<cargo>', methods=['GET'])
+def get_blocos_por_cargo(cargo): ...
+
+
+(Remover as versões com “/cargos/” e “/blocos/”). 
+GitHub
+
+src/main.py
+
+@app.route('/api/user/<user_id>', methods=['GET'])
+def user_alias(user_id):
+    return obter_usuario_por_id(user_id)
+# e trocar o import:
+from routes.questoes import CONTEUDOS_EDITAL
+
+
+GitHub
+
+src/routes/payments.py
+Confirmar 2 pontos:
+
+notification_url → .../api/payments/webhook (não “/pagamentos”).
+
+Rota de status → @payments_bp.route('/status/<payment_id>'). 
+GitHub
+
+2) Se o Trae já aplicou numa branch diferente da master
+
+Mesclar PR na branch padrão (a que o Render usa) e redeploy do backend.
+
+3) Smoke tests (produzidos/agora que você já tem o deploy)
+
+Substitua BASE pela URL do backend em produção (com /api no final).
+
+BASE="https://SEU-BACKEND/render.app/api"
+
+# Health
+curl -s "$BASE/health" | jq '.success and (.data.status=="healthy" or .data.status=="ok")'
+
+# Opções (todas devem retornar success=true)
+curl -s "$BASE/opcoes/cargos-blocos"      | jq '.success'
+curl -s "$BASE/opcoes/diagnostico"        | jq '.success'
+curl -s "$BASE/opcoes/blocos-cargos"      | jq '.success'
+curl -s "$BASE/opcoes/cargos/6"           | jq '.success'
+curl -s "$BASE/opcoes/blocos/Enfermeiro"  | jq '.success'
+
+# Alias de usuário
+curl -s "$BASE/user/USER_ID_EXEMPLO"      | jq '.success or .error'
+
+# Payments (process)
+curl -s -X POST "$BASE/payments/process" \
+  -H "Content-Type: application/json" \
+  -d '{"plano_id":"premium","user_id":"u1"}' | jq '.success and (.data|has("init_point"))'
+
+# Payments (webhook - simulação)
+curl -s -X POST "$BASE/payments/webhook" \
+  -H "Content-Type: application/json" \
+  -d '{"type":"payment","data":{"id":"TEST_PAYMENT_ID"}}' | jq '.success and .data.ack==true'
+
+# Payments (status - aceita payment_id no path)
+curl -s "$BASE/payments/status/123456"    | jq '.success or .error'
+
+
+Se você me passar qual URL do backend está publicada, eu rodo a checagem lógica nesses endpoints (via instruções acima) e te digo se está “carimbado ✅”. Enquanto isso, pelo que está na master pública, ainda faltam os ajustes indicados (opções/alias) e a confirmação do webhook/status em payments. 
+GitHub
++1
+GitHub
++1
+
+Você disse:
+faça um prompt explocando isso pro trae 
+O ChatGPT disse:
+Pensou por 5s
+
+Perfeito, Rafa! Aqui vai um prompt direto pro Trae, explicando o que conferir, o que corrigir (se ainda faltar), garantir merge na branch padrão, redeploy e smokes. É só colar:
+
+Prompt para o Trae — Conferir e finalizar (branch padrão, rotas, webhook, deploy e smokes)
+Objetivo
+- Conferir se as correções combinadas estão na **branch padrão** (master/main) do backend.
+- Corrigir qualquer divergência restante (especialmente o webhook de payments).
+- Abrir PR, mesclar, redeploy e rodar smokes de FE/BE.
+
+Repos
+- Backend:  github.com/techiaemp-netizen/gabarita-ai-backend
+- Frontend: github.com/techiaemp-netizen/gabarita-ai-frontend
+
+========================
+1) Garantir que estamos na BRANCH PADRÃO (REMOTO)
+========================
+git fetch --all --prune
+
+# Descobrir e usar a default branch do remoto (master ou main)
+DEFAULT_BRANCH=$(gh repo view techiaemp-netizen/gabarita-ai-backend --json defaultBranchRef -q .defaultBranchRef.name || echo master)
+git checkout "$DEFAULT_BRANCH"
+git pull --rebase
+
+========================
+2) Verificações no BACKEND (código na DEFAULT)
+========================
+# 2.1 Opções – placeholders no path (devem existir)
+grep -nE "@opcoes_bp\.route\('/cargos/<bloco>'" src/routes/opcoes.py
+grep -nE "@opcoes_bp\.route\('/blocos/<cargo>'" src/routes/opcoes.py
+
+# 2.2 Alias de usuário – deve capturar <user_id>
+grep -n "@app\.route\('/api/user/<user_id>'" src/main.py
+
+# 2.3 Import no main.py – evitar import relativo que pode falhar em runtime
+grep -n "from \.routes\.questoes import CONTEUDOS_EDITAL" src/main.py || true
+grep -n "from routes\.questoes import CONTEUDOS_EDITAL"    src/main.py || true
+
+# 2.4 Payments – webhook e status
+grep -n "notification_url" src/routes/payments.py
+grep -n "/api/pagamentos/webhook" src/routes/payments.py || true   # NÃO deve existir
+grep -n "/api/payments/webhook"   src/routes/payments.py           # DEVE existir
+grep -n "@payments_bp\.route\('/status/<payment_id>'" src/routes/payments.py
+
+# 2.5 Rota de webhook explicitamente registrada
+grep -n "@payments_bp\.route\('/webhook'" src/routes/payments.py
+
+Anote qualquer item que falhar e aplique os patches abaixo.
+
+========================
+3) Patches (aplicar SOMENTE se necessário)
+========================
+# 3.1 src/routes/opcoes.py — placeholders (se ainda existirem rotas '/cargos/' ou '/blocos/')
+# Substituir decorators:
+- @opcoes_bp.route('/cargos/', methods=['GET'])
++ @opcoes_bp.route('/cargos/<bloco>', methods=['GET'])
+
+- @opcoes_bp.route('/blocos/', methods=['GET'])
++ @opcoes_bp.route('/blocos/<cargo>', methods=['GET'])
+
+# 3.2 src/main.py — alias de usuário e import (se necessário)
+- @app.route('/api/user/', methods=['GET'])
++ @app.route('/api/user/<user_id>', methods=['GET'])
+  def user_alias(user_id):
+      return obter_usuario_por_id(user_id)
+
+# Import dentro do /api/opcoes/test (se houver import relativo):
+- from .routes.questoes import CONTEUDOS_EDITAL
++ from routes.questoes import CONTEUDOS_EDITAL
+
+# 3.3 src/routes/payments.py — webhook + status
+# CORRIGIR notification_url (se ainda estiver /api/pagamentos/webhook):
+- "notification_url": f"{os.getenv('BACKEND_URL')}/api/pagamentos/webhook"
++ "notification_url": f"{os.getenv('BACKEND_URL')}/api/payments/webhook"
+
+# GARANTIR status com path param:
+@payments_bp.route('/status/<payment_id>', methods=['GET'])
+def obter_status_pagamento(payment_id): ...
+
+# (Se necessário) Handler explícito do webhook:
+@payments_bp.route('/webhook', methods=['POST'])
+def payments_webhook():
+    payload = request.get_json(silent=True) or {}
+    # TODO: logar, validar, consultar status no MP, idempotência
+    return ResponseFormatter.success({"ack": True, "received": bool(payload)})
+
+# Commit dos patches (caso houve ajustes)
+git checkout -b fix/final-sync
+git add src/routes/opcoes.py src/main.py src/routes/payments.py
+git commit -m "Fix: placeholders de opções, alias de usuário e webhook/status de payments"
+git push -u origin HEAD
+
+# PR para DEFAULT_BRANCH e merge
+gh pr create --base "$DEFAULT_BRANCH" --title "Fix: sync final (opções, usuário, payments)" --body "Sincroniza rotas e webhook; pronto para deploy."
+gh pr merge --squash --delete-branch
+
+========================
+4) Deploy backend e ENV
+========================
+# Garantir que o serviço (Render) usa a DEFAULT_BRANCH consolidada e disparar redeploy.
+# Checar que BACKEND_URL (env) é a URL pública https do backend (usada na notification_url).
+
+========================
+5) Smokes (OBRIGATÓRIOS, em PRODUÇÃO ou LOCAL)
+========================
+# Ajuste BASE para a URL pública do backend com /api
+BASE="<URL_BACKEND_PUBLICA>/api"
+
+# Health
+curl -s "$BASE/health" | jq '.success'
+
+# Opções (todos devem dar success=true)
+curl -s "$BASE/opcoes/cargos-blocos"      | jq '.success'
+curl -s "$BASE/opcoes/diagnostico"        | jq '.success'
+curl -s "$BASE/opcoes/blocos-cargos"      | jq '.success'
+curl -s "$BASE/opcoes/cargos/6"           | jq '.success'
+curl -s "$BASE/opcoes/blocos/Enfermeiro"  | jq '.success'
+
+# Alias de usuário
+curl -s "$BASE/user/u1" | jq '.success or .error'
+
+# Payments – process (deve retornar init_point)
+curl -s -X POST "$BASE/payments/process" \
+  -H "Content-Type: application/json" \
+  -d '{"plano_id":"premium","user_id":"u1"}' | jq '.success and (.data|has("init_point"))'
+
+# Payments – webhook (simulado; deve ACK)
+curl -s -X POST "$BASE/payments/webhook" \
+  -H "Content-Type: application/json" \
+  -d '{"type":"payment","data":{"id":"TEST_PAYMENT_ID"}}' | jq '.success and .data.ack==true'
+
+# Payments – status (aceita payment_id no path)
+curl -s "$BASE/payments/status/123456" | jq '.success or .error'
+
+Critério de aceite
+- Todos os curls retornam success=true (onde aplicável).
+- NÃO existe "/api/pagamentos/webhook" no código; apenas "/api/payments/webhook".
+- Rota /payments/status aceita <payment_id> no PATH.
+- Alias /api/user/<user_id> presente e funcional na DEFAULT_BRANCH.
+- Deploy do backend atualizado com BACKEND_URL correto.
+
+========================
+6) (Opcional) Verificação do Frontend
+========================
+- Confirmar que o front usa ${NEXT_PUBLIC_API_URL}/api/...
+- Validar que NEXT_PUBLIC_API_URL (produção) aponta para o novo backend publicado.
+- Se necessário, disparar redeploy do front (Vercel).
+
+Saídas esperadas
+- Links do(s) PR(s) e merges.
+- Resultado dos greps comprovando: placeholders ok; alias ok; webhook ok.
+- Logs dos smokes (saídas jq → true).
+- URL pública final do backend usada nos testes + URL do front.
+

@@ -1,0 +1,184 @@
+2025-09-02T14:57:13.036093869Z   Using cached MarkupSafe-3.0.2-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl (23 kB)
+2025-09-02T14:57:13.168261506Z Collecting msgpack==1.1.1
+2025-09-02T14:57:13.170355939Z   Using cached msgpack-1.1.1-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl (429 kB)
+2025-09-02T14:57:13.295827517Z Collecting openai==1.97.1
+2025-09-02T14:57:13.29833458Z   Using cached openai-1.97.1-py3-none-any.whl (764 kB)
+2025-09-02T14:57:13.341345079Z Collecting proto-plus==1.26.1
+2025-09-02T14:57:13.34295207Z   Using cached proto_plus-1.26.1-py3-none-any.whl (50 kB)
+2025-09-02T14:57:13.727126239Z Collecting protobuf==6.31.1
+2025-09-02T14:57:13.729048767Z   Using cached protobuf-6.31.1-cp39-abi3-manylinux2014_x86_64.whl (321 kB)
+2025-09-02T14:57:13.769729927Z Collecting pyasn1==0.6.1
+2025-09-02T14:57:13.771372179Z   Using cached pyasn1-0.6.1-py3-none-any.whl (83 kB)
+2025-09-02T14:57:13.806138289Z Collecting pyasn1_modules==0.4.2
+2025-09-02T14:57:13.807993566Z   Using cached pyasn1_modules-0.4.2-py3-none-any.whl (181 kB)
+2025-09-02T14:57:13.832864586Z Collecting pycparser==2.22
+2025-09-02T14:57:13.834665102Z   Using cached pycparser-2.22-py3-none-any.whl (117 kB)
+2025-09-02T14:57:14.078713282Z Collecting pydantic==2.11.7
+2025-09-02T14:57:14.080756814Z   Using cached pydantic-2.11.7-py3-none-any.whl (444 kB)
+2025-09-02T14:57:15.519602558Z Collecting pydantic_core==2.33.2
+2025-09-02T14:57:15.523651871Z   Using cached pydantic_core-2.33.2-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl (2.0 MB)
+2025-09-02T14:57:15.575061243Z Collecting PyJWT==2.10.1
+2025-09-02T14:57:15.577798032Z   Using cached PyJWT-2.10.1-py3-none-any.whl (22 kB)
+2025-09-02T14:57:15.617269251Z Collecting python-dotenv==1.1.1
+2025-09-02T14:57:15.618943534Z   Using cached python_dotenv-1.1.1-py3-none-any.whl (20 kB)
+2025-09-02T14:57:15.665611376Z Collecting requests==2.32.4
+2025-09-02T14:57:15.667418312Z   Using cached requests-2.32.4-py3-none-any.whl (64 kB)
+2025-09-02T14:57:15.69695806Z Collecting rsa==4.9.1
+2025-09-02T14:57:15.698614851Z   Using cached rsa-4.9.1-py3-none-any.whl (34 kB)
+2025-09-02T14:57:15.720806344Z Collecting sniffio==1.3.1
+2025-09-02T14:57:15.723106662Z   Using cached sniffio-1.3.1-py3-none-any.whl (10 kB)
+2025-09-02T14:57:16.388828349Z Collecting SQLAlchemy==2.0.41
+2025-09-02T14:57:16.39598105Z   Using cached sqlalchemy-2.0.41-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl (3.3 MB)
+2025-09-02T14:57:16.472697443Z Collecting tqdm==4.67.1
+2025-09-02T14:57:16.474287133Z   Using cached tqdm-4.67.1-py3-none-any.whl (78 kB)
+2025-09-02T14:57:16.497629454Z Collecting typing-inspection==0.4.1
+2025-09-02T14:57:16.499079751Z   Using cached typing_inspection-0.4.1-py3-none-any.whl (14 kB)
+2025-09-02T14:57:16.53343167Z Collecting typing_extensions==4.14.0
+2025-09-02T14:57:16.534931719Z   Using cached typing_extensions-4.14.0-py3-none-any.whl (43 kB)
+2025-09-02T14:57:16.586547326Z Collecting urllib3==2.5.0
+2025-09-02T14:57:16.588087114Z   Using cached urllib3-2.5.0-py3-none-any.whl (129 kB)
+2025-09-02T14:57:16.631411692Z Collecting Werkzeug==3.1.3
+2025-09-02T14:57:16.632975481Z   Using cached werkzeug-3.1.3-py3-none-any.whl (224 kB)
+2025-09-02T14:57:16.659879003Z Collecting mercadopago>=2.2.0
+2025-09-02T14:57:16.66135697Z   Using cached mercadopago-2.3.0-py3-none-any.whl (35 kB)
+2025-09-02T14:57:16.692979981Z Collecting gunicorn==23.0.0
+2025-09-02T14:57:16.694496119Z   Using cached gunicorn-23.0.0-py3-none-any.whl (85 kB)
+2025-09-02T14:57:17.62734319Z Collecting packaging
+2025-09-02T14:57:17.628984022Z   Using cached packaging-25.0-py3-none-any.whl (66 kB)
+2025-09-02T14:57:18.036418298Z Installing collected packages: urllib3, typing_extensions, tqdm, sniffio, python-dotenv, PyJWT, pycparser, pyasn1, protobuf, packaging, msgpack, MarkupSafe, jiter, itsdangerous, idna, hyperframe, hpack, h11, grpcio, greenlet, google-crc32c, distro, click, charset-normalizer, certifi, cachetools, blinker, annotated-types, Werkzeug, typing-inspection, SQLAlchemy, rsa, requests, pydantic_core, pyasn1_modules, proto-plus, Jinja2, httpcore, h2, gunicorn, googleapis-common-protos, google-resumable-media, cffi, anyio, pydantic, mercadopago, httpx, grpcio-status, google-auth, Flask, cryptography, CacheControl, openai, google-api-core, Flask-SQLAlchemy, flask-cors, google-cloud-core, google-cloud-storage, google-cloud-firestore, firebase_admin
+2025-09-02T14:57:23.224088288Z Successfully installed CacheControl-0.14.3 Flask-3.1.1 Flask-SQLAlchemy-3.1.1 Jinja2-3.1.6 MarkupSafe-3.0.2 PyJWT-2.10.1 SQLAlchemy-2.0.41 Werkzeug-3.1.3 annotated-types-0.7.0 anyio-4.9.0 blinker-1.9.0 cachetools-5.5.2 certifi-2025.7.14 cffi-1.17.1 charset-normalizer-3.4.2 click-8.2.1 cryptography-45.0.5 distro-1.9.0 firebase_admin-7.0.0 flask-cors-6.0.0 google-api-core-2.25.1 google-auth-2.40.3 google-cloud-core-2.4.3 google-cloud-firestore-2.21.0 google-cloud-storage-3.2.0 google-crc32c-1.7.1 google-resumable-media-2.7.2 googleapis-common-protos-1.70.0 greenlet-3.2.3 grpcio-1.73.1 grpcio-status-1.73.1 gunicorn-23.0.0 h11-0.16.0 h2-4.2.0 hpack-4.1.0 httpcore-1.0.9 httpx-0.28.1 hyperframe-6.1.0 idna-3.10 itsdangerous-2.2.0 jiter-0.10.0 mercadopago-2.3.0 msgpack-1.1.1 openai-1.97.1 packaging-25.0 proto-plus-1.26.1 protobuf-6.31.1 pyasn1-0.6.1 pyasn1_modules-0.4.2 pycparser-2.22 pydantic-2.11.7 pydantic_core-2.33.2 python-dotenv-1.1.1 requests-2.32.4 rsa-4.9.1 sniffio-1.3.1 tqdm-4.67.1 typing-inspection-0.4.1 typing_extensions-4.14.0 urllib3-2.5.0
+2025-09-02T14:57:23.298725597Z 
+2025-09-02T14:57:23.298751348Z [notice] A new release of pip available: 22.3 -> 25.2
+2025-09-02T14:57:23.298755838Z [notice] To update, run: pip install --upgrade pip
+2025-09-02T14:57:24.346627578Z ==> Uploading build...
+2025-09-02T14:57:35.814470044Z ==> Uploaded in 8.4s. Compression took 3.1s
+2025-09-02T14:57:36.018106519Z ==> Build successful 🎉
+2025-09-02T14:57:37.739049795Z ==> Deploying...
+2025-09-02T14:58:05.961754307Z ==> Running 'gunicorn -w 2 -k gthread -t 120 -b 0.0.0.0:$PORT run:app'
+2025-09-02T14:58:08.965629348Z Traceback (most recent call last):
+2025-09-02T14:58:08.965654909Z   File "/opt/render/project/src/.venv/bin/gunicorn", line 8, in <module>
+2025-09-02T14:58:08.965699521Z     sys.exit(run())
+2025-09-02T14:58:08.965752424Z              ^^^^^
+2025-09-02T14:58:08.965756095Z   File "/opt/render/project/src/.venv/lib/python3.11/site-packages/gunicorn/app/wsgiapp.py", line 66, in run
+2025-09-02T14:58:08.965902753Z     WSGIApplication("%(prog)s [OPTIONS] [APP_MODULE]", prog=prog).run()
+2025-09-02T14:58:08.965927454Z   File "/opt/render/project/src/.venv/lib/python3.11/site-packages/gunicorn/app/base.py", line 235, in run
+2025-09-02T14:58:08.966076123Z     super().run()
+2025-09-02T14:58:08.966086573Z   File "/opt/render/project/src/.venv/lib/python3.11/site-packages/gunicorn/app/base.py", line 71, in run
+2025-09-02T14:58:08.966175238Z     Arbiter(self).run()
+2025-09-02T14:58:08.966179208Z     ^^^^^^^^^^^^^
+2025-09-02T14:58:08.966181839Z   File "/opt/render/project/src/.venv/lib/python3.11/site-packages/gunicorn/arbiter.py", line 57, in __init__
+2025-09-02T14:58:08.966253943Z     self.setup(app)
+2025-09-02T14:58:08.966259013Z   File "/opt/render/project/src/.venv/lib/python3.11/site-packages/gunicorn/arbiter.py", line 117, in setup
+2025-09-02T14:58:08.966346188Z     self.app.wsgi()
+2025-09-02T14:58:08.966369589Z   File "/opt/render/project/src/.venv/lib/python3.11/site-packages/gunicorn/app/base.py", line 66, in wsgi
+2025-09-02T14:58:08.966457934Z     self.callable = self.load()
+2025-09-02T14:58:08.966473685Z                     ^^^^^^^^^^^
+2025-09-02T14:58:08.966475685Z   File "/opt/render/project/src/.venv/lib/python3.11/site-packages/gunicorn/app/wsgiapp.py", line 57, in load
+2025-09-02T14:58:08.96656087Z     return self.load_wsgiapp()
+2025-09-02T14:58:08.966610583Z            ^^^^^^^^^^^^^^^^^^^
+2025-09-02T14:58:08.966616443Z   File "/opt/render/project/src/.venv/lib/python3.11/site-packages/gunicorn/app/wsgiapp.py", line 47, in load_wsgiapp
+2025-09-02T14:58:08.966694938Z     return util.import_app(self.app_uri)
+2025-09-02T14:58:09.051627946Z            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2025-09-02T14:58:09.051848309Z   File "/opt/render/project/src/.venv/lib/python3.11/site-packages/gunicorn/util.py", line 370, in import_app
+2025-09-02T14:58:09.051952895Z     mod = importlib.import_module(module)
+2025-09-02T14:58:09.051998037Z           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2025-09-02T14:58:09.052003647Z   File "/opt/render/project/python/Python-3.11.0/lib/python3.11/importlib/__init__.py", line 126, in import_module
+2025-09-02T14:58:09.052113734Z     return _bootstrap._gcd_import(name[level:], package, level)
+2025-09-02T14:58:09.052207799Z            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2025-09-02T14:58:09.052213889Z   File "<frozen importlib._bootstrap>", line 1206, in _gcd_import
+2025-09-02T14:58:09.05221687Z   File "<frozen importlib._bootstrap>", line 1178, in _find_and_load
+2025-09-02T14:58:09.05221977Z   File "<frozen importlib._bootstrap>", line 1149, in _find_and_load_unlocked
+2025-09-02T14:58:09.05222299Z   File "<frozen importlib._bootstrap>", line 690, in _load_unlocked
+2025-09-02T14:58:09.05222575Z   File "<frozen importlib._bootstrap_external>", line 940, in exec_module
+2025-09-02T14:58:09.05222843Z   File "<frozen importlib._bootstrap>", line 241, in _call_with_frames_removed
+2025-09-02T14:58:09.05223151Z   File "/opt/render/project/src/run.py", line 1, in <module>
+2025-09-02T14:58:09.052298914Z     from src.main import app
+2025-09-02T14:58:09.052317945Z   File "/opt/render/project/src/src/main.py", line 5, in <module>
+2025-09-02T14:58:09.052417761Z     from services.chatgpt_service import chatgpt_service
+2025-09-02T14:58:09.052479974Z ModuleNotFoundError: No module named 'services'
+2025-09-02T14:58:11.724282721Z ==> Exited with status 1
+2025-09-02T14:58:11.743352968Z ==> Common ways to troubleshoot your deploy: https://render.com/docs/troubleshooting-deploys
+2025-09-02T14:58:21.669134655Z ==> Running 'gunicorn -w 2 -k gthread -t 120 -b 0.0.0.0:$PORT run:app'
+2025-09-02T14:58:24.469403553Z Traceback (most recent call last):
+2025-09-02T14:58:24.469422874Z   File "/opt/render/project/src/.venv/bin/gunicorn", line 8, in <module>
+2025-09-02T14:58:24.469426775Z     sys.exit(run())
+2025-09-02T14:58:24.469429655Z              ^^^^^
+2025-09-02T14:58:24.469433695Z   File "/opt/render/project/src/.venv/lib/python3.11/site-packages/gunicorn/app/wsgiapp.py", line 66, in run
+2025-09-02T14:58:24.469439085Z     WSGIApplication("%(prog)s [OPTIONS] [APP_MODULE]", prog=prog).run()
+2025-09-02T14:58:24.469442095Z   File "/opt/render/project/src/.venv/lib/python3.11/site-packages/gunicorn/app/base.py", line 235, in run
+2025-09-02T14:58:24.469444785Z     super().run()
+2025-09-02T14:58:24.469447826Z   File "/opt/render/project/src/.venv/lib/python3.11/site-packages/gunicorn/app/base.py", line 71, in run
+2025-09-02T14:58:24.469450536Z     Arbiter(self).run()
+2025-09-02T14:58:24.469453236Z     ^^^^^^^^^^^^^
+2025-09-02T14:58:24.469455866Z   File "/opt/render/project/src/.venv/lib/python3.11/site-packages/gunicorn/arbiter.py", line 57, in __init__
+2025-09-02T14:58:24.469465077Z     self.setup(app)
+2025-09-02T14:58:24.469467917Z   File "/opt/render/project/src/.venv/lib/python3.11/site-packages/gunicorn/arbiter.py", line 117, in setup
+2025-09-02T14:58:24.469609585Z     self.app.wsgi()
+2025-09-02T14:58:24.469728961Z   File "/opt/render/project/src/.venv/lib/python3.11/site-packages/gunicorn/app/base.py", line 66, in wsgi
+2025-09-02T14:58:24.469734172Z     self.callable = self.load()
+2025-09-02T14:58:24.469736832Z                     ^^^^^^^^^^^
+2025-09-02T14:58:24.469739142Z   File "/opt/render/project/src/.venv/lib/python3.11/site-packages/gunicorn/app/wsgiapp.py", line 57, in load
+2025-09-02T14:58:24.469964175Z     return self.load_wsgiapp()
+2025-09-02T14:58:24.469971385Z            ^^^^^^^^^^^^^^^^^^^
+2025-09-02T14:58:24.469974755Z   File "/opt/render/project/src/.venv/lib/python3.11/site-packages/gunicorn/app/wsgiapp.py", line 47, in load_wsgiapp
+2025-09-02T14:58:24.469990986Z     return util.import_app(self.app_uri)
+2025-09-02T14:58:24.470159616Z            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2025-09-02T14:58:24.470164036Z   File "/opt/render/project/src/.venv/lib/python3.11/site-packages/gunicorn/util.py", line 370, in import_app
+2025-09-02T14:58:24.470322465Z     mod = importlib.import_module(module)
+2025-09-02T14:58:24.470399809Z           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2025-09-02T14:58:24.47041235Z   File "/opt/render/project/python/Python-3.11.0/lib/python3.11/importlib/__init__.py", line 126, in import_module
+2025-09-02T14:58:24.470542517Z     return _bootstrap._gcd_import(name[level:], package, level)
+2025-09-02T14:58:24.470616102Z            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2025-09-02T14:58:24.470626582Z   File "<frozen importlib._bootstrap>", line 1206, in _gcd_import
+2025-09-02T14:58:24.470638533Z   File "<frozen importlib._bootstrap>", line 1178, in _find_and_load
+2025-09-02T14:58:24.470696236Z   File "<frozen importlib._bootstrap>", line 1149, in _find_and_load_unlocked
+2025-09-02T14:58:24.470700436Z   File "<frozen importlib._bootstrap>", line 690, in _load_unlocked
+2025-09-02T14:58:24.470703136Z   File "<frozen importlib._bootstrap_external>", line 940, in exec_module
+2025-09-02T14:58:24.470705856Z   File "<frozen importlib._bootstrap>", line 241, in _call_with_frames_removed
+2025-09-02T14:58:24.470708717Z   File "/opt/render/project/src/run.py", line 1, in <module>
+2025-09-02T14:58:24.470831854Z     from src.main import app
+2025-09-02T14:58:24.470849025Z   File "/opt/render/project/src/src/main.py", line 5, in <module>
+2025-09-02T14:58:24.47094239Z     from services.chatgpt_service import chatgpt_service
+2025-09-02T14:58:24.4709476Z ModuleNotFoundError: No module named 'services'
+2025-09-02T14:58:51.468781114Z ==> Running 'gunicorn -w 2 -k gthread -t 120 -b 0.0.0.0:$PORT run:app'
+2025-09-02T14:58:54.471302479Z Traceback (most recent call last):
+2025-09-02T14:58:54.471362763Z   File "/opt/render/project/src/.venv/bin/gunicorn", line 8, in <module>
+2025-09-02T14:58:54.471373143Z     sys.exit(run())
+2025-09-02T14:58:54.471383444Z              ^^^^^
+2025-09-02T14:58:54.471386964Z   File "/opt/render/project/src/.venv/lib/python3.11/site-packages/gunicorn/app/wsgiapp.py", line 66, in run
+2025-09-02T14:58:54.471508541Z     WSGIApplication("%(prog)s [OPTIONS] [APP_MODULE]", prog=prog).run()
+2025-09-02T14:58:54.471602276Z   File "/opt/render/project/src/.venv/lib/python3.11/site-packages/gunicorn/app/base.py", line 235, in run
+2025-09-02T14:58:54.471732894Z     super().run()
+2025-09-02T14:58:54.471739374Z   File "/opt/render/project/src/.venv/lib/python3.11/site-packages/gunicorn/app/base.py", line 71, in run
+2025-09-02T14:58:54.47185133Z     Arbiter(self).run()
+2025-09-02T14:58:54.471863541Z     ^^^^^^^^^^^^^
+2025-09-02T14:58:54.471866541Z   File "/opt/render/project/src/.venv/lib/python3.11/site-packages/gunicorn/arbiter.py", line 57, in __init__
+2025-09-02T14:58:54.471975947Z     self.setup(app)
+2025-09-02T14:58:54.471979938Z   File "/opt/render/project/src/.venv/lib/python3.11/site-packages/gunicorn/arbiter.py", line 117, in setup
+2025-09-02T14:58:54.472114285Z     self.app.wsgi()
+2025-09-02T14:58:54.472118455Z   File "/opt/render/project/src/.venv/lib/python3.11/site-packages/gunicorn/app/base.py", line 66, in wsgi
+2025-09-02T14:58:54.472575431Z     self.callable = self.load()
+2025-09-02T14:58:54.472580261Z                     ^^^^^^^^^^^
+2025-09-02T14:58:54.472582872Z   File "/opt/render/project/src/.venv/lib/python3.11/site-packages/gunicorn/app/wsgiapp.py", line 57, in load
+2025-09-02T14:58:54.472585412Z     return self.load_wsgiapp()
+2025-09-02T14:58:54.472587682Z            ^^^^^^^^^^^^^^^^^^^
+2025-09-02T14:58:54.472592302Z   File "/opt/render/project/src/.venv/lib/python3.11/site-packages/gunicorn/app/wsgiapp.py", line 47, in load_wsgiapp
+2025-09-02T14:58:54.472595562Z     return util.import_app(self.app_uri)
+2025-09-02T14:58:54.472597793Z            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2025-09-02T14:58:54.472600442Z   File "/opt/render/project/src/.venv/lib/python3.11/site-packages/gunicorn/util.py", line 370, in import_app
+2025-09-02T14:58:54.472606473Z     mod = importlib.import_module(module)
+2025-09-02T14:58:54.472678347Z           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2025-09-02T14:58:54.472683457Z   File "/opt/render/project/python/Python-3.11.0/lib/python3.11/importlib/__init__.py", line 126, in import_module
+2025-09-02T14:58:54.472753391Z     return _bootstrap._gcd_import(name[level:], package, level)
+2025-09-02T14:58:54.472822565Z            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2025-09-02T14:58:54.472830795Z   File "<frozen importlib._bootstrap>", line 1206, in _gcd_import
+2025-09-02T14:58:54.472833816Z   File "<frozen importlib._bootstrap>", line 1178, in _find_and_load
+2025-09-02T14:58:54.472836176Z   File "<frozen importlib._bootstrap>", line 1149, in _find_and_load_unlocked
+2025-09-02T14:58:54.472841926Z   File "<frozen importlib._bootstrap>", line 690, in _load_unlocked
+2025-09-02T14:58:54.472844526Z   File "<frozen importlib._bootstrap_external>", line 940, in exec_module
+2025-09-02T14:58:54.472846947Z   File "<frozen importlib._bootstrap>", line 241, in _call_with_frames_removed
+2025-09-02T14:58:54.472849547Z   File "/opt/render/project/src/run.py", line 1, in <module>
+2025-09-02T14:58:54.472937541Z     from src.main import app
+2025-09-02T14:58:54.472941182Z   File "/opt/render/project/src/src/main.py", line 5, in <module>
+2025-09-02T14:58:54.473043818Z     from services.chatgpt_service import chatgpt_service
+2025-09-02T14:58:54.473050258Z ModuleNotFoundError: No module named 'services'

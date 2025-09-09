@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Debug CSS - Gabarita AI</title>
+    <style>
+        /* CSS inline para teste */
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f3f4f6;
+            margin: 0;
+            padding: 20px;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #1f2937;
+            font-size: 2rem;
+            margin-bottom: 20px;
+        }
+        .status {
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 5px;
+        }
+        .success {
+            background-color: #d1fae5;
+            color: #065f46;
+            border: 1px solid #10b981;
+        }
+        .error {
+            background-color: #fee2e2;
+            color: #991b1b;
+            border: 1px solid #ef4444;
+        }
+        .link {
+            display: inline-block;
+            margin: 5px 10px 5px 0;
+            padding: 8px 16px;
+            background-color: #3b82f6;
+            color: white;
+            text-decoration: none;
+            border-radius: 4px;
+        }
+        .link:hover {
+            background-color: #2563eb;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔍 Debug CSS - Gabarita AI</h1>
+        
+        <div class="status success">
+            ✅ <strong>CSS Inline Funcionando:</strong> Se você está vendo este card verde, o CSS básico está funcionando.
+        </div>
+        
+        <div class="status error">
+            ❌ <strong>Problema Identificado:</strong> Se a página principal não tem estilos, pode ser um problema com o Tailwind CSS no Next.js.
+        </div>
+        
+        <h2>Links de Teste:</h2>
+        <a href="/" class="link">← Página Principal</a>
+        <a href="/test-styles" class="link">Teste Tailwind</a>
+        <a href="/test.html" class="link">Teste CDN</a>
+        
+        <h2>Informações Técnicas:</h2>
+        <ul>
+            <li><strong>Servidor:</strong> http://localhost:3000</li>
+            <li><strong>Framework:</strong> Next.js 15.5.2</li>
+            <li><strong>CSS:</strong> Tailwind CSS 3.3.2</li>
+            <li><strong>Status:</strong> Investigando problema de renderização</li>
+        </ul>
+        
+        <div class="status">
+            <strong>Próximos Passos:</strong>
+            <ol>
+                <li>Verificar se o CSS está sendo carregado no navegador</li>
+                <li>Inspecionar elementos com DevTools</li>
+                <li>Verificar console do navegador para erros</li>
+                <li>Testar em modo incógnito</li>
+            </ol>
+        </div>
+    </div>
+</body>
+</html>

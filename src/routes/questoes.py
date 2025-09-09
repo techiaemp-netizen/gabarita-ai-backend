@@ -158,7 +158,8 @@ def responder_questao():
         for field in required_fields:
             if field not in data:
                 return jsonify({
-                    'erro': f'Campo obrigatório ausente: {field}'
+                    'success': False,
+                    'error': f'Campo obrigatório ausente: {field}'
                 }), 400
         
         questao_id = data['questao_id']
@@ -251,20 +252,22 @@ def responder_questao():
             print(f"Erro ao gerar explicação: {e}")
         
         return jsonify({
-            'sucesso': True,
-            'acertou': acertou,
-            'gabarito': gabarito_simulado,
-            'explicacao': explicacao,
-            'alternativa_escolhida': alternativa_escolhida,
-            'tempo_resposta': tempo_resposta,
-            'estatisticas': novas_stats if 'novas_stats' in locals() else None
+            'success': True,
+            'data': {
+                'acertou': acertou,
+                'gabarito': gabarito_correto,
+                'explicacao': explicacao,
+                'alternativa_escolhida': alternativa_escolhida,
+                'tempo_resposta': tempo_resposta,
+                'estatisticas': novas_stats if 'novas_stats' in locals() else None
+            }
         })
         
     except Exception as e:
         print(f"Erro ao processar resposta: {e}")
         return jsonify({
-            'erro': 'Erro interno do servidor',
-            'detalhes': str(e)
+            'success': False,
+            'error': 'Erro interno do servidor'
         }), 500
 
 @questoes_bp.route('/estatisticas/<usuario_id>', methods=['GET'])
@@ -950,7 +953,10 @@ def gerar_questao():
         
         if not all([usuario_id, cargo, bloco]):
             print("❌ Dados obrigatórios faltando")
-            return jsonify({'erro': 'Dados do usuário são obrigatórios'}), 400
+            return jsonify({
+                'success': False,
+                'error': 'Dados do usuário são obrigatórios'
+            }), 400
         
         # Obter conteúdo específico do edital baseado no tipo de conhecimento
         if modo_foco and materia_foco:
@@ -962,7 +968,10 @@ def gerar_questao():
         
         if not conteudo_edital:
             print("❌ Cargo ou bloco não encontrado")
-            return jsonify({'erro': 'Cargo ou bloco não encontrado'}), 404
+            return jsonify({
+                'success': False,
+                'error': 'Cargo ou bloco não encontrado'
+            }), 404
         
         # ========== IMPLEMENTAÇÃO DA ROLETA ==========
         print("🎯 SISTEMA DE ROLETA ATIVADO")
@@ -1096,13 +1105,21 @@ def gerar_questao():
             'dificuldade': questao_completa['dificuldade']
         }
         
-        return jsonify(questao_frontend)
+        return jsonify({
+            'success': True,
+            'data': {
+                'questao': questao_frontend
+            }
+        })
         
     except Exception as e:
         print(f"❌ Erro ao gerar questão: {e}")
         import traceback
         traceback.print_exc()
-        return jsonify({'erro': 'Erro interno do servidor'}), 500
+        return jsonify({
+            'success': False,
+            'error': 'Erro interno do servidor'
+        }), 500
 
 @questoes_bp.route('/materias-foco/<cargo>/<bloco>', methods=['GET'])
 def obter_materias_foco(cargo, bloco):
@@ -1332,13 +1349,18 @@ def obter_materias_por_cargo_bloco(cargo, bloco):
                 })
         
         return jsonify({
-            'sucesso': True,
-            'materias': materias_performance
+            'success': True,
+            'data': {
+                'materias': materias_performance
+            }
         })
         
     except Exception as e:
         print(f"Erro ao obter matérias: {e}")
-        return jsonify({'erro': 'Erro interno do servidor'}), 500
+        return jsonify({
+            'success': False,
+            'error': 'Erro interno do servidor'
+        }), 500
 
 def _obter_conteudo_edital(cargo, bloco, tipo_conhecimento='todos'):
     """Obtém conteúdo específico do edital para o cargo e bloco"""
@@ -1637,7 +1659,7 @@ def obter_desempenho_semanal(usuario_id):
     except Exception as e:
         return jsonify({
             'success': False,
-            'erro': f'Erro ao buscar desempenho semanal: {str(e)}'
+            'error': f'Erro ao buscar desempenho semanal: {str(e)}'
         }), 500
 
 @questoes_bp.route('/dashboard/evolucao-mensal/<usuario_id>', methods=['GET'])
@@ -1699,7 +1721,7 @@ def obter_evolucao_mensal(usuario_id):
     except Exception as e:
         return jsonify({
             'success': False,
-            'erro': f'Erro ao buscar evolução mensal: {str(e)}'
+            'error': f'Erro ao buscar evolução mensal: {str(e)}'
         }), 500
 
 @questoes_bp.route('/dashboard/metas/<usuario_id>', methods=['GET'])
@@ -1943,6 +1965,54 @@ def obter_atividades_recentes(usuario_id):
         return jsonify({
             'success': False,
             'erro': f'Erro ao buscar atividades recentes: {str(e)}'
+        }), 500
+
+@questoes_bp.route('/macetes/<macete_id>', methods=['GET'])
+def obter_macete(macete_id):
+    """Endpoint para obter macete específico por ID"""
+    try:
+        # Simular busca de macete
+        macetes_simulados = {
+            '1': {
+                'id': '1',
+                'titulo': 'Macete para Questões de Matemática',
+                'conteudo': 'Para resolver questões de porcentagem rapidamente, lembre-se: 10% = dividir por 10, 20% = dividir por 5, 25% = dividir por 4.',
+                'categoria': 'matematica',
+                'dificuldade': 'facil',
+                'autor': 'Professor João',
+                'data_criacao': datetime.now().isoformat()
+            },
+            '2': {
+                'id': '2',
+                'titulo': 'Macete para Português',
+                'conteudo': 'Para identificar sujeito: pergunte "quem?" ou "o que?" antes do verbo.',
+                'categoria': 'portugues',
+                'dificuldade': 'medio',
+                'autor': 'Professora Maria',
+                'data_criacao': datetime.now().isoformat()
+            }
+        }
+        
+        macete = macetes_simulados.get(macete_id)
+        
+        if not macete:
+            return jsonify({
+                'success': False,
+                'error': 'Macete não encontrado'
+            }), 404
+        
+        return jsonify({
+            'success': True,
+            'data': {
+                'macete': macete
+            }
+        })
+        
+    except Exception as e:
+        print(f"Erro ao obter macete: {e}")
+        return jsonify({
+            'success': False,
+            'error': 'Erro interno do servidor'
         }), 500
 
 @questoes_bp.route('/dashboard/notificacoes/<usuario_id>', methods=['GET'])

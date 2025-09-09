@@ -1,0 +1,34 @@
+services:
+  - type: web
+    name: gabarita-ai-backend
+    env: python
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn --bind 0.0.0.0:$PORT run:app
+    envVars:
+      - key: FLASK_APP
+        value: run.py
+      - key: FLASK_ENV
+        value: production
+      - key: FLASK_DEBUG
+        value: false
+      - key: PYTHON_VERSION
+        value: 3.11.0
+      - key: PORT
+        generateValue: true
+      - key: FRONTEND_URL
+        value: https://gabarita-ai-frontend.vercel.app
+      - key: BACKEND_URL
+        value: https://gabarita-ai-backend.onrender.com
+      - key: CORS_ORIGINS
+        value: https://gabarita-ai-frontend.vercel.app,http://localhost:3000
+      - key: DATABASE_URL
+        fromDatabase:
+          name: gabarita-ai-db
+          property: connectionString
+
+databases:
+  - name: gabarita-ai-db
+    plan: free
+    databaseName: gabarita_ai
+    user: gabarita_user

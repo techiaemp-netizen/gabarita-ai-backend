@@ -1,10 +1,10 @@
 from flask import Blueprint, request, jsonify
 from werkzeug.security import generate_password_hash, check_password_hash
-from firebase_admin import firestore
 import re
+from ..config.firebase_config import firebase_config
 
 signup_bp = Blueprint('signup', __name__)
-db = firestore.client()
+db = firebase_config.get_db()
 
 def validate_email(email):
     """Valida formato do email"""
@@ -24,151 +24,127 @@ def validate_nickname(nickname):
     return True, ""
 
 @signup_bp.route('/signup', methods=['POST'])
+@signup_bp.route('/api/signup', methods=['POST'])
 def signup():
-    """Endpoint para cadastro de usuario com hash de senha"""
+    """Endpoint para cadastro de usuários"""
     try:
         data = request.get_json()
         
-        # Validar dados obrigatorios
-        required_fields = ['nomeCompleto', 'cpf', 'email', 'senha', 'cargo', 'bloco']
-        for field in required_fields:
-            if not data.get(field):
-                return jsonify({
-                    'sucesso': False,
-                    'erro': f'Campo {field} e obrigatorio'
-                }), 400
+        if not data:
+            return jsonify({
+                'success': False,
+                'error': 'Dados não fornecidos',
+                'message': 'Corpo da requisição deve conter dados JSON'
+            }), 400
         
-        nome_completo = data['nomeCompleto'].strip()
-        cpf = data['cpf'].strip()
-        email = data['email'].strip().lower()
-        senha = data['senha']
-        cargo = data['cargo'].strip()
-        bloco = data['bloco'].strip()
+        # Validar campos obrigatórios
+        email = data.get('email', '').strip().lower()
+        password = data.get('password', '').strip()
+        nickname = data.get('nickname', '').strip()
+        nome = data.get('nome', '').strip()
         
-        # Validacoes
+        if not email or not password:
+            return jsonify({
+                'success': False,
+                'error': 'Dados obrigatórios ausentes',
+                'message': 'Email e senha são obrigatórios'
+            }), 400
+        
+        # Validações
         if not validate_email(email):
             return jsonify({
-                'sucesso': False,
-                'erro': 'Email invalido'
+                'success': False,
+                'error': 'Email inválido',
+                'message': 'Formato de email inválido'
             }), 400
         
-        # Validar CPF (implementação básica)
-        if not cpf or len(cpf.replace('.', '').replace('-', '')) != 11:
-            return jsonify({
-                'sucesso': False,
-                'erro': 'CPF invalido'
-            }), 400
-        
-        is_valid_password, password_error = validate_password(senha)
+        is_valid_password, password_error = validate_password(password)
         if not is_valid_password:
             return jsonify({
-                'sucesso': False,
-                'erro': password_error
+                'success': False,
+                'error': 'Senha inválida',
+                'message': password_error
             }), 400
         
-        # Verificar se email ja existe
-        users_ref = db.collection('users')
-        existing_user = users_ref.where('email', '==', email).limit(1).get()
+        if nickname:
+            is_valid_nickname, nickname_error = validate_nickname(nickname)
+            if not is_valid_nickname:
+                return jsonify({
+                    'success': False,
+                    'error': 'Nickname inválido',
+                    'message': nickname_error
+                }), 400
         
-        if existing_user:
+        # Verificar se usuário já existe
+        try:
+            users_ref = db.collection('users')
+            existing_user = users_ref.where('email', '==', email).limit(1).get()
+            
+            if len(existing_user) > 0:
+                return jsonify({
+                    'success': False,
+                    'error': 'Usuário já existe',
+                    'message': 'Este email já está cadastrado'
+                }), 409
+        
+        except Exception as e:
+            print(f"Erro ao verificar usuário existente: {e}")
             return jsonify({
-                'sucesso': False,
-                'erro': 'Email ja cadastrado'
-            }), 409
+                'success': False,
+                'error': 'Erro de banco de dados',
+                'message': 'Erro ao verificar dados do usuário'
+            }), 500
         
-        # Verificar se CPF ja existe
-        existing_cpf = users_ref.where('cpf', '==', cpf).limit(1).get()
+        # Hash da senha
+        password_hash = generate_password_hash(password)
         
-        if existing_cpf:
-            return jsonify({
-                'sucesso': False,
-                'erro': 'CPF ja cadastrado'
-            }), 409
-        
-        # Gerar hash da senha
-        password_hash = generate_password_hash(senha)
-        
-        # Criar usuario no Firestore
+        # Criar novo usuário
         user_data = {
-            'nomeCompleto': nome_completo,
-            'cpf': cpf,
             'email': email,
             'password_hash': password_hash,
-            'cargo': cargo,
-            'bloco': bloco,
-            'freeQuestionsRemaining': 3,
-            'createdAt': firestore.SERVER_TIMESTAMP,
-            'totalAnswered': 0,
-            'correctAnswers': 0,
-            'planId': 'free',
-            'profileComplete': True
+            'nickname': nickname or email.split('@')[0],
+            'nome': nome or nickname or email.split('@')[0],
+            'plano': 'trial',  # Plano padrão
+            'createdAt': 'desenvolvimento',
+            'ativo': True,
+            'configuracoes': {
+                'notificacoes': True,
+                'tema': 'claro'
+            }
         }
         
-        # Adicionar usuario
-        doc_ref = users_ref.add(user_data)
-        user_id = doc_ref[1].id
-        
-        return jsonify({
-            'sucesso': True,
-            'mensagem': 'Usuario cadastrado com sucesso',
-            'userId': user_id
-        }), 201
-        
+        try:
+            # Salvar no Firebase
+            doc_ref = users_ref.add(user_data)
+            user_id = doc_ref[1].id
+            
+            return jsonify({
+                'success': True,
+                'message': 'Usuário cadastrado com sucesso',
+                'data': {
+                    'user_id': user_id,
+                    'email': email,
+                    'nickname': user_data['nickname'],
+                    'nome': user_data['nome'],
+                    'plano': user_data['plano'],
+                    'token': user_id
+                }
+            }), 201
+            
+        except Exception as e:
+            print(f"Erro ao criar usuário: {e}")
+            return jsonify({
+                'success': False,
+                'error': 'Erro ao criar usuário',
+                'message': 'Erro interno do servidor ao criar usuário'
+            }), 500
+    
     except Exception as e:
-        print(f"Erro no cadastro: {str(e)}")
+        print(f"Erro no cadastro: {e}")
         return jsonify({
-            'sucesso': False,
-            'erro': 'Erro interno do servidor'
+            'success': False,
+            'error': 'Erro interno',
+            'message': 'Erro interno do servidor'
         }), 500
 
-@signup_bp.route('/login', methods=['POST'])
-def login():
-    """Endpoint para login com verificacao de hash"""
-    try:
-        data = request.get_json()
-        
-        email = data.get('email', '').strip().lower()
-        senha = data.get('senha', '')
-        
-        if not email or not senha:
-            return jsonify({
-                'sucesso': False,
-                'erro': 'Email e senha sao obrigatorios'
-            }), 400
-        
-        # Buscar usuario por email
-        users_ref = db.collection('users')
-        user_query = users_ref.where('email', '==', email).limit(1).get()
-        
-        if not user_query:
-            return jsonify({
-                'sucesso': False,
-                'erro': 'Usuario nao encontrado'
-            }), 404
-        
-        user_doc = user_query[0]
-        user_data = user_doc.to_dict()
-        
-        # Verificar senha
-        if not check_password_hash(user_data.get('password_hash', ''), senha):
-            return jsonify({
-                'sucesso': False,
-                'erro': 'Senha incorreta'
-            }), 401
-        
-        # Remover hash da senha dos dados retornados
-        user_data.pop('password_hash', None)
-        user_data['id'] = user_doc.id
-        
-        return jsonify({
-            'sucesso': True,
-            'mensagem': 'Login realizado com sucesso',
-            'usuario': user_data
-        }), 200
-        
-    except Exception as e:
-        print(f"Erro no login: {str(e)}")
-        return jsonify({
-            'sucesso': False,
-            'erro': 'Erro interno do servidor'
-        }), 500
+# Login endpoint removido - usar apenas o endpoint em auth.py

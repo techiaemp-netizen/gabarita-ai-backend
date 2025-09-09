@@ -2,25 +2,62 @@ from flask import Flask, jsonify, request
 from flask_cors import CORS
 import os
 from datetime import datetime
+from . import firebase_config
 from .services.chatgpt_service import chatgpt_service
 from .routes.questoes import CONTEUDOS_EDITAL
 from .routes.signup import signup_bp
+from .routes.auth import auth_bp
 from .routes.questoes import questoes_bp
 from .routes.planos import planos_bp
 from .routes.jogos import jogos_bp
 from .routes.news import news_bp
 from .routes.opcoes import opcoes_bp
+from .routes.user import user_bp
 
 app = Flask(__name__)
-CORS(app, origins=['http://localhost:3000', 'http://localhost:5173', 'https://j6h5i7c0x703.manus.space'], supports_credentials=True)
+
+# Configurar CORS com variáveis de ambiente para produção
+cors_origins = os.getenv('CORS_ORIGINS', 'http://localhost:3000,http://localhost:5173,https://j6h5i7c0x703.manus.space').split(',')
+CORS(app, 
+     origins=[origin.strip() for origin in cors_origins], 
+     supports_credentials=True,
+     methods=['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+     allow_headers=['Content-Type', 'Authorization', 'X-Requested-With'])
 
 # Registrar blueprints
 app.register_blueprint(signup_bp, url_prefix='/api/auth')
+app.register_blueprint(auth_bp, url_prefix='/api/auth')
 app.register_blueprint(questoes_bp, url_prefix='/api/questoes')
 app.register_blueprint(planos_bp, url_prefix='/api')
 app.register_blueprint(jogos_bp, url_prefix='/api/jogos')
 app.register_blueprint(news_bp, url_prefix='/api')
 app.register_blueprint(opcoes_bp, url_prefix='/api')
+app.register_blueprint(user_bp, url_prefix='/api/user')
+
+# Aliases para compatibilidade com frontend
+@app.route('/api/usuarios/<user_id>', methods=['GET'])
+def get_usuario_alias(user_id):
+    """Alias para GET /api/user/<id>"""
+    from .routes.user import get_user
+    return get_user(user_id)
+
+@app.route('/api/usuarios/<user_id>', methods=['PUT'])
+def update_usuario_alias(user_id):
+    """Alias para PUT /api/user/<id>"""
+    from .routes.user import update_user
+    return update_user(user_id)
+
+@app.route('/api/usuarios/perfil', methods=['GET'])
+def get_perfil_alias():
+    """Alias para GET /api/user/profile"""
+    from .routes.user import get_profile
+    return get_profile()
+
+@app.route('/api/usuarios/perfil', methods=['PUT'])
+def update_perfil_alias():
+    """Alias para PUT /api/user/profile"""
+    from .routes.user import update_profile
+    return update_profile()
 
 @app.route('/', methods=['GET'])
 def root():
@@ -47,21 +84,7 @@ def health_check():
         'version': '1.0.0'
     })
 
-@app.route('/api/auth/login', methods=['POST'])
-def login():
-    data = request.get_json()
-    # Simulação de login simples
-    return jsonify({
-        'success': True,
-        'user': {
-            'id': '1',
-            'nome': data.get('email', 'Usuário'),
-            'email': data.get('email'),
-            'cargo': 'Enfermeiro',
-            'bloco': 'Saúde'
-        },
-        'token': 'demo_token_123'
-    })
+# Rota de login removida - usar blueprint signup_bp em /api/auth/login
 
 @app.route('/api/questoes/gerar', methods=['POST'])
 def gerar_questao_endpoint():
@@ -72,14 +95,32 @@ def gerar_questao_endpoint():
     print(f"📋 Dados recebidos: {data}")
     sys.stdout.flush()
     
-    usuario_id = data.get('usuario_id', 'user-default')
-    cargo = data.get('cargo', 'Enfermeiro')
-    bloco = data.get('bloco', 'Saúde')
+    # Obter usuario_id do token de autenticação ou usar bypass para desenvolvimento
+    auth_header = request.headers.get('Authorization')
+    if auth_header and auth_header.startswith('Bearer '):
+        usuario_id = auth_header.split(' ')[1]  # Usar token como usuario_id temporariamente
+    else:
+        usuario_id = 'dev-user'  # Fallback para desenvolvimento
+    
+    # Aceitar parâmetros do frontend
+    cargo = data.get('cargo') or data.get('subject', 'Enfermeiro')
+    bloco = data.get('bloco') or data.get('difficulty', 'Saúde')
+    count = data.get('count', 1)
     
     print(f"👤 Usuario ID: {usuario_id}")
     print(f"💼 Cargo: {cargo}")
     print(f"📚 Bloco: {bloco}")
+    print(f"🔢 Quantidade: {count}")
     sys.stdout.flush()
+    
+    # Validar dados obrigatórios
+    if not cargo or not bloco:
+        print("❌ Dados obrigatórios faltando")
+        return jsonify({
+            'success': False,
+            'error': 'Cargo e bloco são obrigatórios',
+            'data': []
+        }), 400
     
     # Obter conteúdo específico do edital
     conteudo_edital = CONTEUDOS_EDITAL.get(cargo, {}).get(bloco, [])
@@ -88,7 +129,11 @@ def gerar_questao_endpoint():
     
     if not conteudo_edital:
         print("❌ Cargo ou bloco não encontrado")
-        return jsonify({'erro': 'Cargo ou bloco não encontrado'}), 404
+        return jsonify({
+            'success': False,
+            'error': 'Cargo ou bloco não encontrado',
+            'data': []
+        }), 404
     
     # Usar a função real de geração de questões
     try:
@@ -99,17 +144,21 @@ def gerar_questao_endpoint():
         
         if questao_gerada:
             print(f"✅ Questão gerada com sucesso: {questao_gerada.get('questao', 'N/A')[:50]}...")
-            # Converter formato para o frontend
+            # Converter formato para o frontend (padrão inglês)
             questao_frontend = {
                 'id': f'q-{usuario_id}-{datetime.now().strftime("%Y%m%d%H%M%S")}',
-                'enunciado': questao_gerada.get('questao', ''),
-                'alternativas': [{'id': alt['id'], 'texto': alt['texto']} for alt in questao_gerada.get('alternativas', [])],
-                'gabarito': questao_gerada.get('gabarito', 'A'),
-                'explicacao': questao_gerada.get('explicacao', ''),
-                'dificuldade': questao_gerada.get('dificuldade', 'medio'),
-                'tema': questao_gerada.get('tema', conteudo_edital[0] if conteudo_edital else 'Geral')
+                'question': questao_gerada.get('questao', ''),
+                'alternatives': [{'id': alt['id'], 'text': alt['texto']} for alt in questao_gerada.get('alternativas', [])],
+                'correctAnswer': questao_gerada.get('gabarito', 'A'),
+                'explanation': questao_gerada.get('explicacao', ''),
+                'difficulty': questao_gerada.get('dificuldade', 'medium'),
+                'subject': questao_gerada.get('tema', conteudo_edital[0] if conteudo_edital else 'General')
             }
-            return jsonify({'questao': questao_frontend})
+            return jsonify({
+                'success': True,
+                'data': [questao_frontend],
+                'message': 'Questão gerada com sucesso'
+            })
         else:
             print("❌ ChatGPT retornou None")
             raise Exception("ChatGPT não retornou questão válida")
@@ -120,27 +169,29 @@ def gerar_questao_endpoint():
         import traceback
         traceback.print_exc()
         sys.stdout.flush()
-        # Fallback
+        # Fallback (padrão inglês)
         questao_personalizada = {
             'id': f'q-{usuario_id}-{datetime.now().strftime("%Y%m%d%H%M%S")}',
-            'enunciado': 'Questão de exemplo sobre SUS',
-            'alternativas': [
-                {'id': 'A', 'texto': 'Alternativa A'},
-                {'id': 'B', 'texto': 'Alternativa B'},
-                {'id': 'C', 'texto': 'Alternativa C'},
-                {'id': 'D', 'texto': 'Alternativa D'},
-                {'id': 'E', 'texto': 'Alternativa E'}
+            'question': f'Questão sobre {cargo} - {bloco}: Qual das alternativas abaixo está correta sobre os conceitos fundamentais da área?',
+            'alternatives': [
+                {'id': 'A', 'text': 'Alternativa A - Conceito básico 1'},
+                {'id': 'B', 'text': 'Alternativa B - Conceito básico 2'},
+                {'id': 'C', 'text': 'Alternativa C - Conceito básico 3'},
+                {'id': 'D', 'text': 'Alternativa D - Conceito básico 4'},
+                {'id': 'E', 'text': 'Alternativa E - Conceito básico 5'}
             ],
-            'gabarito': 'C',
-            'explicacao': 'Explicação da resposta correta',
-            'dificuldade': 'medio',
-            'tema': 'SUS'
+            'correctAnswer': 'C',
+            'explanation': 'Esta é uma questão de fallback gerada automaticamente.',
+            'difficulty': 'medium',
+            'subject': 'Conceitos Gerais'
         }
         
-        print(f"✅ Questão fallback gerada: {questao_personalizada['enunciado'][:50]}...")
+        print(f"✅ Questão fallback gerada: {questao_personalizada['question'][:50]}...")
         
         return jsonify({
-            'questao': questao_personalizada
+            'success': True,
+            'data': [questao_personalizada],
+            'message': 'Questão de fallback gerada'
         })
 
 @app.route('/api/questoes/<questao_id>/responder', methods=['POST'])

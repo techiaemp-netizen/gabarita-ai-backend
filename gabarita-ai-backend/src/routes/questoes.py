@@ -23,7 +23,8 @@ def responder_questao():
         for field in required_fields:
             if field not in data:
                 return jsonify({
-                    'erro': f'Campo obrigatório ausente: {field}'
+                    'success': False,
+                    'error': f'Campo obrigatório ausente: {field}'
                 }), 400
         
         questao_id = data['questao_id']
@@ -39,8 +40,7 @@ def responder_questao():
         # Atualizar estatísticas do usuário no Firebase/Firestore
         if firebase_config.is_configured():
             try:
-                from firebase_admin import firestore
-                db = firestore.client()
+                db = firebase_config.get_db()
                 
                 # Buscar dados atuais do usuário
                 user_ref = db.collection('usuarios').document(usuario_id)
@@ -94,20 +94,22 @@ def responder_questao():
                     print(f"Erro ao gerar explicação ChatGPT: {e2}")
         
         return jsonify({
-            'sucesso': True,
-            'acertou': acertou,
-            'gabarito': gabarito_simulado,
-            'explicacao': explicacao,
-            'alternativa_escolhida': alternativa_escolhida,
-            'tempo_resposta': tempo_resposta,
-            'estatisticas': novas_stats if 'novas_stats' in locals() else None
+            'success': True,
+            'data': {
+                'acertou': acertou,
+                'gabarito': gabarito_simulado,
+                'explicacao': explicacao,
+                'alternativa_escolhida': alternativa_escolhida,
+                'tempo_resposta': tempo_resposta,
+                'estatisticas': novas_stats if 'novas_stats' in locals() else None
+            }
         })
         
     except Exception as e:
         print(f"Erro ao processar resposta: {e}")
         return jsonify({
-            'erro': 'Erro interno do servidor',
-            'detalhes': str(e)
+            'success': False,
+            'error': 'Erro interno do servidor'
         }), 500
 
 @questoes_bp.route('/chat-duvidas', methods=['POST'])
@@ -122,7 +124,8 @@ def chat_tira_duvidas():
         for field in required_fields:
             if field not in data:
                 return jsonify({
-                    'erro': f'Campo obrigatório ausente: {field}'
+                    'success': False,
+                    'error': f'Campo obrigatório ausente: {field}'
                 }), 400
         
         questao_id = data['questao_id']
@@ -149,16 +152,18 @@ def chat_tira_duvidas():
             resposta = chatgpt_service.gerar_explicacao(prompt_chat)
         
         return jsonify({
-            'sucesso': True,
-            'resposta': resposta,
-            'questao_id': questao_id
+            'success': True,
+            'data': {
+                'resposta': resposta,
+                'questao_id': questao_id
+            }
         })
         
     except Exception as e:
         print(f"Erro no chat tira-dúvidas: {e}")
         return jsonify({
-            'erro': 'Erro interno do servidor',
-            'detalhes': str(e)
+            'success': False,
+            'error': 'Erro interno do servidor'
         }), 500
 
 @questoes_bp.route('/macetes/<questao_id>', methods=['GET'])
@@ -186,16 +191,18 @@ def obter_macetes(questao_id):
             macetes = chatgpt_service.gerar_explicacao(prompt_macetes)
         
         return jsonify({
-            'sucesso': True,
-            'macetes': macetes,
-            'questao_id': questao_id
+            'success': True,
+            'data': {
+                'macetes': macetes,
+                'questao_id': questao_id
+            }
         })
         
     except Exception as e:
         print(f"Erro ao obter macetes: {e}")
         return jsonify({
-            'erro': 'Erro interno do servidor',
-            'detalhes': str(e)
+            'success': False,
+            'error': 'Erro interno do servidor'
         }), 500
 
 @questoes_bp.route('/pontos-centrais/<questao_id>', methods=['GET'])
@@ -223,16 +230,18 @@ def obter_pontos_centrais(questao_id):
             pontos = chatgpt_service.gerar_explicacao(prompt_pontos)
         
         return jsonify({
-            'sucesso': True,
-            'pontos_centrais': pontos,
-            'questao_id': questao_id
+            'success': True,
+            'data': {
+                'pontos_centrais': pontos,
+                'questao_id': questao_id
+            }
         })
         
     except Exception as e:
         print(f"Erro ao obter pontos centrais: {e}")
         return jsonify({
-            'erro': 'Erro interno do servidor',
-            'detalhes': str(e)
+            'success': False,
+            'error': 'Erro interno do servidor'
         }), 500
 
 @questoes_bp.route('/outras-exploracoes/<questao_id>', methods=['GET'])
@@ -260,16 +269,18 @@ def obter_outras_exploracoes(questao_id):
             exploracoes = chatgpt_service.gerar_explicacao(prompt_exploracoes)
         
         return jsonify({
-            'sucesso': True,
-            'outras_exploracoes': exploracoes,
-            'questao_id': questao_id
+            'success': True,
+            'data': {
+                'outras_exploracoes': exploracoes,
+                'questao_id': questao_id
+            }
         })
         
     except Exception as e:
         print(f"Erro ao obter outras explorações: {e}")
         return jsonify({
-            'erro': 'Erro interno do servidor',
-            'detalhes': str(e)
+            'success': False,
+            'error': 'Erro interno do servidor'
         }), 500
 
 @questoes_bp.route('/estatisticas/<usuario_id>', methods=['GET'])
@@ -316,8 +327,8 @@ def buscar_estatisticas(usuario_id):
                     }
                     
                     return jsonify({
-                        'sucesso': True,
-                        'estatisticas': estatisticas
+                        'success': True,
+                        'data': {'estatisticas': estatisticas}
                     })
                     
             except Exception as e:
@@ -346,15 +357,15 @@ def buscar_estatisticas(usuario_id):
         }
         
         return jsonify({
-            'sucesso': True,
-            'estatisticas': estatisticas_simuladas
+            'success': True,
+            'data': {'estatisticas': estatisticas_simuladas}
         })
         
     except Exception as e:
         print(f"Erro ao buscar estatísticas: {e}")
         return jsonify({
-            'erro': 'Erro interno do servidor',
-            'detalhes': str(e)
+            'success': False,
+            'error': 'Erro interno do servidor'
         }), 500
 
 # Mapeamento de conteúdos por cargo e bloco com flag de conhecimentos
@@ -955,7 +966,10 @@ def gerar_questao():
         
         if not all([usuario_id, cargo, bloco]):
             print("❌ Dados obrigatórios faltando")
-            return jsonify({'erro': 'Dados do usuário são obrigatórios'}), 400
+            return jsonify({
+                'success': False,
+                'error': 'Dados do usuário são obrigatórios'
+            }), 400
         
         # Obter conteúdo específico do edital baseado no tipo de conhecimento
         if modo_foco and materia_foco:
@@ -967,7 +981,10 @@ def gerar_questao():
         
         if not conteudo_edital:
             print("❌ Cargo ou bloco não encontrado")
-            return jsonify({'erro': 'Cargo ou bloco não encontrado'}), 404
+            return jsonify({
+                'success': False,
+                'error': 'Cargo ou bloco não encontrado'
+            }), 404
         
         # Gerar questão real usando ChatGPT
         print("🤖 Gerando questão com ChatGPT...")
@@ -1043,15 +1060,20 @@ def gerar_questao():
         }
         
         return jsonify({
-            'sucesso': True,
-            'questao': questao_frontend
+            'success': True,
+            'data': {
+                'questao': questao_frontend
+            }
         })
         
     except Exception as e:
         print(f"❌ Erro ao gerar questão: {e}")
         import traceback
         traceback.print_exc()
-        return jsonify({'erro': 'Erro interno do servidor'}), 500
+        return jsonify({
+            'success': False,
+            'error': 'Erro interno do servidor'
+        }), 500
 
 @questoes_bp.route('/materias-foco/<cargo>/<bloco>', methods=['GET'])
 def obter_materias_foco(cargo, bloco):
@@ -1091,13 +1113,18 @@ def obter_materias_foco(cargo, bloco):
                     })
         
         return jsonify({
-            'sucesso': True,
-            'materias': materias
+            'success': True,
+            'data': {
+                'materias': materias
+            }
         })
         
     except Exception as e:
         print(f"Erro ao obter matérias para modo foco: {e}")
-        return jsonify({'erro': 'Erro interno do servidor'}), 500
+        return jsonify({
+            'success': False,
+            'error': 'Erro interno do servidor'
+        }), 500
 
 # Função duplicada removida - usando apenas a primeira definição
 
@@ -1136,14 +1163,19 @@ def obter_historico(usuario_id):
             questoes = _gerar_historico_simulado(usuario_id, limite)
         
         return jsonify({
-            'sucesso': True,
-            'questoes': questoes,
-            'total': len(questoes)
+            'success': True,
+            'data': {
+                'questoes': questoes,
+                'total': len(questoes)
+            }
         })
         
     except Exception as e:
         print(f"Erro ao obter histórico: {e}")
-        return jsonify({'erro': 'Erro interno do servidor'}), 500
+        return jsonify({
+            'success': False,
+            'error': 'Erro interno do servidor'
+        }), 500
 
 @questoes_bp.route('/estatisticas/<usuario_id>', methods=['GET'])
 def obter_estatisticas(usuario_id):
@@ -1181,13 +1213,18 @@ def obter_estatisticas(usuario_id):
             estatisticas = _gerar_estatisticas_simuladas()
         
         return jsonify({
-            'sucesso': True,
-            'estatisticas': estatisticas
+            'success': True,
+            'data': {
+                'estatisticas': estatisticas
+            }
         })
         
     except Exception as e:
         print(f"Erro ao obter estatísticas: {e}")
-        return jsonify({'erro': 'Erro interno do servidor'}), 500
+        return jsonify({
+            'success': False,
+            'error': 'Erro interno do servidor'
+        }), 500
 
 @questoes_bp.route('/materias/<cargo>/<bloco>', methods=['GET'])
 def obter_materias_por_cargo_bloco(cargo, bloco):
@@ -1253,13 +1290,18 @@ def obter_materias_por_cargo_bloco(cargo, bloco):
                 })
         
         return jsonify({
-            'sucesso': True,
-            'materias': materias_performance
+            'success': True,
+            'data': {
+                'materias': materias_performance
+            }
         })
         
     except Exception as e:
         print(f"Erro ao obter matérias: {e}")
-        return jsonify({'erro': 'Erro interno do servidor'}), 500
+        return jsonify({
+            'success': False,
+            'error': 'Erro interno do servidor'
+        }), 500
 
 def _obter_conteudo_edital(cargo, bloco, tipo_conhecimento='todos'):
     """Obtém conteúdo específico do edital para o cargo e bloco"""
@@ -1736,7 +1778,7 @@ def obter_metas_usuario(usuario_id):
     except Exception as e:
         return jsonify({
             'success': False,
-            'erro': f'Erro ao buscar metas do usuário: {str(e)}'
+            'error': f'Erro ao buscar metas do usuário: {str(e)}'
         }), 500
 
 @questoes_bp.route('/dashboard/atividades-recentes/<usuario_id>', methods=['GET'])

@@ -34,6 +34,66 @@ else:
     print("[PAYMENTS] 🔧 Modo desenvolvimento ativo - pagamentos desabilitados")
     sdk = None
 
+@payments_bp.route('/api/payments/process', methods=['POST'])
+def process_payment():
+    """Processar pagamento - endpoint esperado pelo frontend"""
+    try:
+        # Verificar se Mercado Pago está configurado
+        if sdk is None:
+            return jsonify({'error': 'Mercado Pago não configurado - modo desenvolvimento'}), 503
+            
+        data = request.get_json()
+        plano_id = data.get('plano_id')
+        user_id = data.get('user_id')
+        
+        if not plano_id or not user_id:
+            return jsonify({'error': 'plano_id e user_id são obrigatórios'}), 400
+        
+        # Definir planos
+        planos = {
+            'mensal': {'title': 'Plano Mensal', 'price': 29.90, 'duration': 30},
+            'trimestral': {'title': 'Plano Trimestral', 'price': 79.90, 'duration': 90},
+            'anual': {'title': 'Plano Anual', 'price': 299.90, 'duration': 365}
+        }
+        
+        if plano_id not in planos:
+            return jsonify({'error': 'Plano inválido'}), 400
+            
+        plano_info = planos[plano_id]
+        
+        # Criar preferência no Mercado Pago
+        preference_data = {
+            "items": [{
+                "title": plano_info['title'],
+                "quantity": 1,
+                "unit_price": plano_info['price']
+            }],
+            "back_urls": {
+                "success": f"{os.getenv('FRONTEND_URL', 'http://localhost:3000')}/retorno?status=success",
+                "failure": f"{os.getenv('FRONTEND_URL', 'http://localhost:3000')}/retorno?status=failure",
+                "pending": f"{os.getenv('FRONTEND_URL', 'http://localhost:3000')}/retorno?status=pending"
+            },
+            "auto_return": "approved",
+            "notification_url": f"{os.getenv('BACKEND_URL', 'http://localhost:5000')}/api/payments/webhook",
+            "external_reference": f"{user_id}_{plano_id}_{datetime.now().timestamp()}"
+        }
+        
+        preference_response = sdk.preference().create(preference_data)
+        
+        if preference_response["status"] == 201:
+            preference = preference_response["response"]
+            
+            return jsonify({
+                'preference_id': preference['id'],
+                'init_point': preference['init_point'],
+                'initPoint': preference['init_point']  # Compatibilidade com frontend
+            })
+        else:
+            return jsonify({'error': 'Erro ao criar pagamento'}), 500
+            
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
 @payments_bp.route('/api/pagamentos/criar', methods=['POST'])
 def criar_pagamento():
     """Criar preferência de pagamento no Mercado Pago"""
@@ -110,6 +170,51 @@ def criar_pagamento():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
+@payments_bp.route('/api/payments/webhook', methods=['POST'])
+def payments_webhook():
+    """Webhook para notificações do Mercado Pago - endpoint esperado"""
+    try:
+        # Validar assinatura do webhook
+        x_signature = request.headers.get('x-signature')
+        x_request_id = request.headers.get('x-request-id')
+        
+        if not validate_webhook_signature(request.data, x_signature, x_request_id):
+            return jsonify({'error': 'Assinatura inválida'}), 401
+            
+        data = request.get_json()
+        
+        if data.get('type') == 'payment':
+            payment_id = data['data']['id']
+            
+            # Buscar informações do pagamento
+            payment_info = sdk.payment().get(payment_id)
+            
+            if payment_info['status'] == 200:
+                payment = payment_info['response']
+                external_reference = payment.get('external_reference')
+                status = payment.get('status')
+                
+                # Se pagamento aprovado, ativar plano
+                if status == 'approved':
+                    # Extrair dados da referência externa
+                    parts = external_reference.split('_')
+                    if len(parts) >= 2:
+                        user_id = parts[0]
+                        plano_id = parts[1]
+                        
+                        transaction_data = {
+                            'userId': user_id,
+                            'plano': plano_id,
+                            'duracao': {'mensal': 30, 'trimestral': 90, 'anual': 365}.get(plano_id, 30)
+                        }
+                        
+                        ativar_plano_usuario(transaction_data)
+                        
+        return jsonify({'status': 'ok'})
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
 @payments_bp.route('/api/pagamentos/webhook', methods=['POST'])
 def webhook_pagamento():
     """Webhook para notificações do Mercado Pago"""
@@ -153,6 +258,24 @@ def webhook_pagamento():
                         
         return jsonify({'status': 'ok'})
         
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@payments_bp.route('/api/payments/status/<payment_id>', methods=['GET'])
+def payment_status(payment_id):
+    """Verificar status de um pagamento - endpoint esperado pelo frontend"""
+    try:
+        # Verificar se Mercado Pago está configurado
+        if sdk is None:
+            return jsonify({'error': 'Mercado Pago não configurado - modo desenvolvimento'}), 503
+            
+        payment_info = sdk.payment().get(payment_id)
+        
+        if payment_info['status'] == 200:
+            return jsonify(payment_info['response'])
+        else:
+            return jsonify({'error': 'Pagamento não encontrado'}), 404
+            
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
