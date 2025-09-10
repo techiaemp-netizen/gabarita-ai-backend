@@ -4,14 +4,13 @@ import React, { useState, useEffect } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Check, X, Star, Crown, CreditCard, Zap, Shield, Users } from 'lucide-react';
-import Layout from '@/components/Layout';
+import { Check, Star, Crown, Zap, Users, Shield, CreditCard, XCircle } from 'lucide-react';
+import { Layout } from '@/components/layout';
 import { useRouter } from 'next/navigation';
-import { Plan } from '@/types';
 import { apiService } from '@/services/api';
 import { useAuth } from '@/contexts/AuthContext';
 
-interface Plan {
+interface LocalPlan {
   id: string;
   name: string;
   price: number;
@@ -35,8 +34,13 @@ interface PaymentHistory {
   method: string;
 }
 
-const [plans, setPlans] = useState<Plan[]>([]);
+export default function PlanosPage() {
+  const [activeTab, setActiveTab] = useState<'plans' | 'history'>('plans');
+  const [currentPlan] = useState('premium');
+  const [billingPeriod, setBillingPeriod] = useState<'monthly' | 'yearly'>('monthly');
+  const [plans, setPlans] = useState<LocalPlan[]>([]);
   const [loadingPlans, setLoadingPlans] = useState(true);
+  const router = useRouter();
   const { user } = useAuth();
 
   // Carregar planos da API
@@ -53,29 +57,28 @@ const [plans, setPlans] = useState<Plan[]>([]);
           setPlans([
             {
               id: 'gratuito',
-              nome: 'Gratuito',
-              descricao: 'Perfeito para começar',
-              preco: 0,
-              periodo: 'mensal',
-              duracao: '1 mês',
-              recursos: [
+              name: 'Gratuito',
+              description: 'Perfeito para começar',
+              price: 0,
+              period: 'mensal',
+              features: [
                 '50 questões por mês',
                 '2 simulados por mês',
                 'Estatísticas básicas',
                 'Acesso ao ranking',
                 'Suporte por email'
               ],
-              tipo: 'gratuito',
-              popular: false
+              popular: false,
+              color: 'gray',
+              icon: null
             },
             {
               id: 'premium',
-              nome: 'Premium',
-              descricao: 'Ideal para estudos intensivos',
-              preco: 29.90,
-              periodo: 'mensal',
-              duracao: '1 mês',
-              recursos: [
+              name: 'Premium',
+              description: 'Ideal para estudos intensivos',
+              price: 29.90,
+              period: 'mensal',
+              features: [
                 'Questões ilimitadas',
                 'Simulados ilimitados',
                 'Explicações detalhadas',
@@ -84,17 +87,17 @@ const [plans, setPlans] = useState<Plan[]>([]);
                 'Acesso prioritário ao ranking',
                 'Suporte prioritário'
               ],
-              tipo: 'premium',
-              popular: true
+              popular: true,
+              color: 'blue',
+              icon: null
             },
             {
               id: 'vip',
-              nome: 'VIP',
-              descricao: 'Máximo desempenho',
-              preco: 59.90,
-              periodo: 'mensal',
-              duracao: '1 mês',
-              recursos: [
+              name: 'VIP',
+              description: 'Máximo desempenho',
+              price: 59.90,
+              period: 'mensal',
+              features: [
                 'Tudo do Premium',
                 'Mentoria personalizada',
                 'Plano de estudos customizado',
@@ -103,8 +106,10 @@ const [plans, setPlans] = useState<Plan[]>([]);
                 'Suporte 24/7',
                 'Sessões de coaching'
               ],
-              tipo: 'vip',
-              popular: false
+              popular: false,
+              premium: true,
+              color: 'purple',
+              icon: null
             }
           ]);
         }
@@ -118,37 +123,32 @@ const [plans, setPlans] = useState<Plan[]>([]);
     fetchPlans();
   }, []);
 
-const paymentHistory: PaymentHistory[] = [
-  {
-    id: '1',
-    date: '2024-01-15',
-    plan: 'Premium',
-    amount: 29.90,
-    status: 'paid',
-    method: 'Cartão de Crédito'
-  },
-  {
-    id: '2',
-    date: '2023-12-15',
-    plan: 'Premium',
-    amount: 29.90,
-    status: 'paid',
-    method: 'PIX'
-  },
-  {
-    id: '3',
-    date: '2023-11-15',
-    plan: 'Premium',
-    amount: 29.90,
-    status: 'paid',
-    method: 'Cartão de Crédito'
-  }
-];
-
-export default function PlanosPage() {
-  const [activeTab, setActiveTab] = useState<'plans' | 'history'>('plans');
-  const [currentPlan] = useState('premium');
-  const [billingPeriod, setBillingPeriod] = useState<'monthly' | 'yearly'>('monthly');
+  const paymentHistory: PaymentHistory[] = [
+    {
+      id: '1',
+      date: '2024-01-15',
+      plan: 'Premium',
+      amount: 29.90,
+      status: 'paid',
+      method: 'Cartão de Crédito'
+    },
+    {
+      id: '2',
+      date: '2023-12-15',
+      plan: 'Premium',
+      amount: 29.90,
+      status: 'paid',
+      method: 'PIX'
+    },
+    {
+      id: '3',
+      date: '2023-11-15',
+      plan: 'Premium',
+      amount: 29.90,
+      status: 'paid',
+      method: 'Cartão de Crédito'
+    }
+  ];
 
   const handleSelectPlan = (planId: string) => {
     console.log('Plano selecionado:', planId);
@@ -282,7 +282,7 @@ export default function PlanosPage() {
                 ) : (
                   plans.map((plan) => {
                     const isCurrentPlan = user?.plano === plan.id;
-                    const yearlyPrice = billingPeriod === 'yearly' ? plan.preco * 12 * 0.6 : plan.preco;
+                    const yearlyPrice = billingPeriod === 'yearly' ? plan.price * 12 * 0.6 : plan.price;
                     
                     // Definir ícone baseado no tipo do plano
                     const getIcon = (tipo: string) => {
@@ -319,7 +319,7 @@ export default function PlanosPage() {
                           </div>
                         )}
                         
-                        {plan.tipo === 'vip' && (
+                        {plan.premium && (
                           <div className="absolute -top-3 right-4">
                             <Crown className="w-6 h-6 text-purple-600" />
                           </div>
@@ -327,32 +327,32 @@ export default function PlanosPage() {
 
                         <div className="text-center mb-6">
                           <div className={`w-12 h-12 mx-auto mb-4 rounded-full flex items-center justify-center ${
-                            getColor(plan.tipo) === 'blue' ? 'bg-blue-100 text-blue-600' :
-                            getColor(plan.tipo) === 'purple' ? 'bg-purple-100 text-purple-600' :
+                            plan.color === 'blue' ? 'bg-blue-100 text-blue-600' :
+                            plan.color === 'purple' ? 'bg-purple-100 text-purple-600' :
                             'bg-gray-100 text-gray-600'
                           }`}>
-                            {getIcon(plan.tipo)}
+                            {plan.icon || <Shield className="w-6 h-6" />}
                           </div>
                           
-                          <h3 className="text-xl font-bold text-gray-900 mb-2">{plan.nome}</h3>
+                          <h3 className="text-xl font-bold text-gray-900 mb-2">{plan.name}</h3>
                           
                           <div className="mb-2">
                             <span className="text-3xl font-bold text-gray-900">
-                              R$ {billingPeriod === 'yearly' ? yearlyPrice.toFixed(2) : plan.preco.toFixed(2)}
+                              R$ {billingPeriod === 'yearly' ? yearlyPrice.toFixed(2) : plan.price.toFixed(2)}
                             </span>
                             <span className="text-gray-600 text-sm ml-1">
-                              {billingPeriod === 'yearly' ? '/ano' : `/${plan.periodo}`}
+                              {billingPeriod === 'yearly' ? '/ano' : `/${plan.period}`}
                             </span>
                           </div>
                           
-                          <p className="text-gray-600 text-sm">{plan.descricao}</p>
+                          <p className="text-gray-600 text-sm">{plan.description}</p>
                         </div>
 
                         <div className="space-y-3 mb-6">
-                          {plan.recursos.map((recurso, index) => (
+                          {plan.features.map((feature, index) => (
                             <div key={index} className="flex items-center gap-3">
                               <Check className="w-4 h-4 text-green-600 flex-shrink-0" />
-                              <span className="text-sm text-gray-700">{recurso}</span>
+                              <span className="text-sm text-gray-700">{feature}</span>
                             </div>
                           ))}
                         </div>
@@ -368,7 +368,7 @@ export default function PlanosPage() {
                                 : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-50'
                           }`}
                         >
-                          {isCurrentPlan ? 'Plano Atual' : `Escolher ${plan.nome}`}
+                          {isCurrentPlan ? 'Plano Atual' : `Escolher ${plan.name}`}
                         </Button>
                       </Card>
                     );
@@ -405,25 +405,25 @@ export default function PlanosPage() {
                       </tr>
                       <tr className="border-b">
                         <td className="py-3 px-4">Explicações detalhadas</td>
-                        <td className="text-center py-3 px-4"><X className="w-4 h-4 text-red-500 mx-auto" /></td>
+                        <td className="text-center py-3 px-4"><XCircle className="w-4 h-4 text-red-500 mx-auto" /></td>
                         <td className="text-center py-3 px-4"><Check className="w-4 h-4 text-green-600 mx-auto" /></td>
                         <td className="text-center py-3 px-4"><Check className="w-4 h-4 text-green-600 mx-auto" /></td>
                       </tr>
                       <tr className="border-b">
                         <td className="py-3 px-4">Relatórios avançados</td>
-                        <td className="text-center py-3 px-4"><X className="w-4 h-4 text-red-500 mx-auto" /></td>
+                        <td className="text-center py-3 px-4"><XCircle className="w-4 h-4 text-red-500 mx-auto" /></td>
                         <td className="text-center py-3 px-4"><Check className="w-4 h-4 text-green-600 mx-auto" /></td>
                         <td className="text-center py-3 px-4"><Check className="w-4 h-4 text-green-600 mx-auto" /></td>
                       </tr>
                       <tr className="border-b">
                         <td className="py-3 px-4">Mentoria personalizada</td>
-                        <td className="text-center py-3 px-4"><X className="w-4 h-4 text-red-500 mx-auto" /></td>
-                        <td className="text-center py-3 px-4"><X className="w-4 h-4 text-red-500 mx-auto" /></td>
+                        <td className="text-center py-3 px-4"><XCircle className="w-4 h-4 text-red-500 mx-auto" /></td>
+                        <td className="text-center py-3 px-4"><XCircle className="w-4 h-4 text-red-500 mx-auto" /></td>
                         <td className="text-center py-3 px-4"><Check className="w-4 h-4 text-green-600 mx-auto" /></td>
                       </tr>
                       <tr>
                         <td className="py-3 px-4">Suporte prioritário</td>
-                        <td className="text-center py-3 px-4"><X className="w-4 h-4 text-red-500 mx-auto" /></td>
+                        <td className="text-center py-3 px-4"><XCircle className="w-4 h-4 text-red-500 mx-auto" /></td>
                         <td className="text-center py-3 px-4">Email</td>
                         <td className="text-center py-3 px-4">24/7</td>
                       </tr>

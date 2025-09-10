@@ -6,6 +6,7 @@ export interface User {
   name?: string; // Alias para nome, usado em alguns componentes
   email: string;
   cpf?: string;
+  telefone?: string;
   cargo?: string;
   bloco?: string;
   level?: number;
@@ -16,6 +17,9 @@ export interface User {
   created_at: string;
   updated_at: string;
   questionsAnswered?: number;
+  conteudoEditalId?: string;
+  cargoId?: string;
+  grupoId?: string;
 }
 
 export interface Question {
@@ -106,7 +110,17 @@ export interface AuthContextType {
   loading: boolean;
   isClient: boolean;
   login: (email: string, password: string) => Promise<void>;
-  signup: (userData: Partial<User> & { password: string }) => Promise<void>;
+  signup: (userData: {
+    nome: string;
+    email: string;
+    cpf: string;
+    telefone?: string;
+    password: string;
+    conteudoEditalId: string;
+    cargoId: string;
+    grupoId: string;
+    plano?: string;
+  }) => Promise<void>;
   logout: () => Promise<void>;
   updateUser: (userData: Partial<User>) => Promise<void>;
   simulateAuth: () => void;

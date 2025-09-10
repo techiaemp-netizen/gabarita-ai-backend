@@ -247,7 +247,7 @@ export default function SimuladoPage() {
       recognitionInstance.interimResults = false;
       recognitionInstance.lang = 'pt-BR';
       
-      recognitionInstance.onresult = (event) => {
+      recognitionInstance.onresult = (event: any) => {
         const transcript = event.results[0][0].transcript;
         setChatInput(transcript);
         setIsRecording(false);

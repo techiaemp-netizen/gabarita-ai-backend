@@ -467,7 +467,7 @@ export default function SimuladoPage() {
                   return (
                     <Button
                       key={index}
-                      variant={isCurrent ? 'default' : isAnswered ? 'secondary' : 'outline'}
+                      variant={isCurrent ? 'secondary' : isAnswered ? 'secondary' : 'outline'}
                       size="sm"
                       className="aspect-square p-0"
                       onClick={() => goToQuestion(index)}
@@ -533,7 +533,7 @@ export default function SimuladoPage() {
                 {currentQuestion.options.map((option, index) => (
                   <Button
                     key={index}
-                    variant={selectedAnswer === index ? 'default' : 'outline'}
+                    variant={selectedAnswer === index ? 'secondary' : 'outline'}
                     className="w-full justify-start text-left h-auto p-4"
                     onClick={() => handleAnswerSelect(index)}
                   >

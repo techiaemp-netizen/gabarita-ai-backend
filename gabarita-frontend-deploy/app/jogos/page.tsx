@@ -224,7 +224,7 @@ export default function JogosPage() {
           {categories.map((category) => (
             <Button
               key={category}
-              variant={selectedCategory === category ? 'default' : 'outline'}
+              variant={selectedCategory === category ? 'secondary' : 'outline'}
               size="sm"
               onClick={() => setSelectedCategory(category)}
             >

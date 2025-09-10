@@ -459,7 +459,7 @@ export default function RankingPage() {
                     <Button 
                       className="w-full"
                       disabled={competition.status === 'finished'}
-                      variant={competition.status === 'active' ? 'default' : 'outline'}
+                      variant={competition.status === 'active' ? undefined : 'outline'}
                     >
                       {competition.status === 'active' ? 'Participar' :
                        competition.status === 'upcoming' ? 'Em Breve' : 'Finalizado'}

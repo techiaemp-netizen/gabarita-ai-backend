@@ -250,12 +250,12 @@ export default function QuizPage() {
         <CardContent>
           <div className="space-y-3">
             {currentQuestion.options.map((option, index) => {
-              let buttonVariant: "default" | "outline" | "secondary" | "destructive" = "outline";
+              let buttonVariant: "secondary" | "outline" | "destructive" = "outline";
               let icon = null;
               
               if (showResult) {
                 if (index === currentQuestion.correctAnswer) {
-                  buttonVariant = "default";
+                  buttonVariant = "secondary";
                   icon = <CheckCircle className="w-4 h-4 ml-2" />;
                 } else if (index === selectedAnswer && selectedAnswer !== currentQuestion.correctAnswer) {
                   buttonVariant = "destructive";
