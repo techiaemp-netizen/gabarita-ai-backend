@@ -10,9 +10,13 @@ from .routes.planos import planos_bp
 from .routes.jogos import jogos_bp
 from .routes.news import news_bp
 from .routes.opcoes import opcoes_bp
+from .routes.payments import payments_bp
 
 app = Flask(__name__)
 CORS(app, origins=['http://localhost:3000', 'http://localhost:5173', 'https://j6h5i7c0x703.manus.space'], supports_credentials=True)
+
+# Carrega configuração do MercadoPago para a app
+app.config["MERCADOPAGO_ACCESS_TOKEN"] = os.getenv("MERCADOPAGO_ACCESS_TOKEN", "")
 
 # Registrar blueprints
 app.register_blueprint(signup_bp, url_prefix='/api/auth')
@@ -21,6 +25,7 @@ app.register_blueprint(planos_bp, url_prefix='/api')
 app.register_blueprint(jogos_bp, url_prefix='/api/jogos')
 app.register_blueprint(news_bp, url_prefix='/api')
 app.register_blueprint(opcoes_bp, url_prefix='/api')
+app.register_blueprint(payments_bp, url_prefix='/api')
 
 @app.route('/', methods=['GET'])
 def root():
@@ -35,7 +40,8 @@ def root():
             'questoes': '/api/questoes/*',
             'planos': '/api/planos',
             'jogos': '/api/jogos/*',
-            'opcoes': '/api/opcoes/*'
+            'opcoes': '/api/opcoes/*',
+            'payments': '/api/payments/*'
         }
     })
 
