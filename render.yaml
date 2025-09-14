@@ -1,0 +1,19 @@
+services:
+  - type: web
+    name: gabarita-ai-backend
+    env: python
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn --bind 0.0.0.0:$PORT src.main:app
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.0
+      - key: FLASK_ENV
+        value: production
+      - key: PORT
+        generateValue: true
+    healthCheckPath: /health
+    autoDeploy: false
+    branch: gabarita-frontend-deploy
+    repo: https://github.com/techiaemp-netizen/gabarita-ai-frontend.git
+    rootDir: gabarita-ai-backend

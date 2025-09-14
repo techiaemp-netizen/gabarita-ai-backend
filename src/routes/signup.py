@@ -1,10 +1,20 @@
 from flask import Blueprint, request, jsonify
 from werkzeug.security import generate_password_hash, check_password_hash
-from firebase_admin import firestore
+from ..config.firebase_config import firebase_config
 import re
+import uuid
+from datetime import datetime
 
 signup_bp = Blueprint('signup', __name__)
-db = firestore.client()
+
+# Simulação de banco de dados em memória para desenvolvimento
+users_db = {}
+
+def get_db():
+    """Retorna a instância do banco (Firebase ou simulado)"""
+    if firebase_config.is_connected():
+        return firebase_config.get_db()
+    return None
 
 def validate_email(email):
     """Valida formato do email"""
@@ -66,29 +76,45 @@ def signup():
                 'erro': password_error
             }), 400
         
-        # Verificar se email ja existe
-        users_ref = db.collection('users')
-        existing_user = users_ref.where('email', '==', email).limit(1).get()
+        db = get_db()
         
-        if existing_user:
-            return jsonify({
-                'sucesso': False,
-                'erro': 'Email ja cadastrado'
-            }), 409
-        
-        # Verificar se CPF ja existe
-        existing_cpf = users_ref.where('cpf', '==', cpf).limit(1).get()
-        
-        if existing_cpf:
-            return jsonify({
-                'sucesso': False,
-                'erro': 'CPF ja cadastrado'
-            }), 409
+        if db:  # Firebase conectado
+            # Verificar se email ja existe
+            users_ref = db.collection('users')
+            existing_user = users_ref.where('email', '==', email).limit(1).get()
+            
+            if existing_user:
+                return jsonify({
+                    'sucesso': False,
+                    'erro': 'Email ja cadastrado'
+                }), 409
+            
+            # Verificar se CPF ja existe
+            existing_cpf = users_ref.where('cpf', '==', cpf).limit(1).get()
+            
+            if existing_cpf:
+                return jsonify({
+                    'sucesso': False,
+                    'erro': 'CPF ja cadastrado'
+                }), 409
+        else:  # Modo desenvolvimento - banco em memória
+            # Verificar se email ja existe
+            for user_id, user_data in users_db.items():
+                if user_data.get('email') == email:
+                    return jsonify({
+                        'sucesso': False,
+                        'erro': 'Email ja cadastrado'
+                    }), 409
+                if user_data.get('cpf') == cpf:
+                    return jsonify({
+                        'sucesso': False,
+                        'erro': 'CPF ja cadastrado'
+                    }), 409
         
         # Gerar hash da senha
         password_hash = generate_password_hash(senha)
         
-        # Criar usuario no Firestore
+        # Criar usuario
         user_data = {
             'nomeCompleto': nome_completo,
             'cpf': cpf,
@@ -97,16 +123,23 @@ def signup():
             'cargo': cargo,
             'bloco': bloco,
             'freeQuestionsRemaining': 3,
-            'createdAt': firestore.SERVER_TIMESTAMP,
             'totalAnswered': 0,
             'correctAnswers': 0,
             'planId': 'free',
             'profileComplete': True
         }
         
-        # Adicionar usuario
-        doc_ref = users_ref.add(user_data)
-        user_id = doc_ref[1].id
+        if db:  # Firebase conectado
+            from firebase_admin import firestore
+            user_data['createdAt'] = firestore.SERVER_TIMESTAMP
+            users_ref = db.collection('users')
+            doc_ref = users_ref.add(user_data)
+            user_id = doc_ref[1].id
+        else:  # Modo desenvolvimento
+            user_id = str(uuid.uuid4())
+            user_data['createdAt'] = datetime.now().isoformat()
+            user_data['id'] = user_id
+            users_db[user_id] = user_data
         
         return jsonify({
             'sucesso': True,
@@ -136,18 +169,37 @@ def login():
                 'erro': 'Email e senha sao obrigatorios'
             }), 400
         
-        # Buscar usuario por email
-        users_ref = db.collection('users')
-        user_query = users_ref.where('email', '==', email).limit(1).get()
+        db = get_db()
+        user_data = None
+        user_id = None
         
-        if not user_query:
-            return jsonify({
-                'sucesso': False,
-                'erro': 'Usuario nao encontrado'
-            }), 404
-        
-        user_doc = user_query[0]
-        user_data = user_doc.to_dict()
+        if db:  # Firebase conectado
+            # Buscar usuario por email
+            users_ref = db.collection('users')
+            user_query = users_ref.where('email', '==', email).limit(1).get()
+            
+            if not user_query:
+                return jsonify({
+                    'sucesso': False,
+                    'erro': 'Usuario nao encontrado'
+                }), 404
+            
+            user_doc = user_query[0]
+            user_data = user_doc.to_dict()
+            user_id = user_doc.id
+        else:  # Modo desenvolvimento
+            # Buscar usuario por email no banco em memória
+            for uid, udata in users_db.items():
+                if udata.get('email') == email:
+                    user_data = udata.copy()
+                    user_id = uid
+                    break
+            
+            if not user_data:
+                return jsonify({
+                    'sucesso': False,
+                    'erro': 'Usuario nao encontrado'
+                }), 404
         
         # Verificar senha
         if not check_password_hash(user_data.get('password_hash', ''), senha):
@@ -158,7 +210,7 @@ def login():
         
         # Remover hash da senha dos dados retornados
         user_data.pop('password_hash', None)
-        user_data['id'] = user_doc.id
+        user_data['id'] = user_id
         
         return jsonify({
             'sucesso': True,
