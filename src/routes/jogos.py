@@ -1,7 +1,10 @@
 """\nRotas para sistema de jogos educativos\n"""
 from flask import Blueprint, request, jsonify
-from ..services.chatgpt_service import chatgpt_service
-from ..config.firebase_config import firebase_config
+import sys
+import os
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from services.chatgpt_service import chatgpt_service
+from config.firebase_config import firebase_config
 from datetime import datetime, timedelta
 import uuid
 import random
@@ -10,7 +13,7 @@ from typing import Dict, List, Any
 
 # Importações dos prompts especializados
 try:
-    from ..services.prompts_jogos import (
+    from services.prompts_jogos import (
         get_prompt_forca, get_prompt_quiz, get_prompt_memoria,
         get_prompt_palavras_cruzadas, get_prompt_validacao_resposta,
         get_prompt_dica_jogo, get_prompt_feedback_sessao,
@@ -30,6 +33,27 @@ except ImportError:
     def ajustar_prompt_por_dificuldade(prompt, dif): return prompt
 
 jogos_bp = Blueprint('jogos', __name__)
+
+@jogos_bp.route('/', methods=['GET'])
+def info_jogos():
+    """Rota principal para informações sobre jogos disponíveis"""
+    try:
+        return jsonify({
+            'sucesso': True,
+            'mensagem': 'API de Jogos - Gabarita.AI',
+            'endpoints': {
+                'listar': '/api/jogos/listar',
+                'iniciar': '/api/jogos/iniciar/<jogo_tipo>',
+                'jogada': '/api/jogos/jogada',
+                'ranking': '/api/jogos/ranking',
+                'historico': '/api/jogos/historico'
+            },
+            'tipos_jogos': list(JOGOS_CONFIG.keys()),
+            'versao': '1.0.0'
+        })
+    except Exception as e:
+        print(f"Erro na rota principal de jogos: {e}")
+        return jsonify({'erro': 'Erro interno do servidor'}), 500
 
 # Configurações dos jogos
 JOGOS_CONFIG = {

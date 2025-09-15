@@ -1,5 +1,8 @@
 from flask import Blueprint, jsonify, request
-from src.models.user import User, db
+import sys
+import os
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from models.user import User, db
 
 user_bp = Blueprint('user', __name__)
 

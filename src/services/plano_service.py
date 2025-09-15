@@ -1,6 +1,9 @@
 from datetime import datetime, timedelta
 from firebase_admin import firestore
-from ..config.firebase_config import firebase_config
+import sys
+import os
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from config.firebase_config import firebase_config
 
 class PlanoService:
     """Serviço para gerenciamento de planos de usuário"""

@@ -2,13 +2,35 @@
 Rotas para geração e gerenciamento de questões
 """
 from flask import Blueprint, request, jsonify
-from ..services.chatgpt_service import chatgpt_service
-from ..services.perplexity_service import perplexity_service
-from ..config.firebase_config import firebase_config
+import sys
+import os
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from services.chatgpt_service import chatgpt_service
+from services.perplexity_service import perplexity_service
+from config.firebase_config import firebase_config
 from datetime import datetime
 import uuid
 
 questoes_bp = Blueprint('questoes', __name__)
+
+@questoes_bp.route('/', methods=['GET'])
+def listar_questoes():
+    """Rota principal para listar questões disponíveis"""
+    try:
+        return jsonify({
+            'sucesso': True,
+            'mensagem': 'API de Questões - Gabarita.AI',
+            'endpoints': {
+                'gerar': '/api/questoes/gerar',
+                'responder': '/api/questoes/responder',
+                'chat-duvidas': '/api/questoes/chat-duvidas',
+                'macetes': '/api/questoes/macetes/<questao_id>'
+            },
+            'versao': '1.0.0'
+        })
+    except Exception as e:
+        print(f"Erro na rota principal de questões: {e}")
+        return jsonify({'erro': 'Erro interno do servidor'}), 500
 
 @questoes_bp.route('/responder', methods=['POST'])
 def responder_questao():

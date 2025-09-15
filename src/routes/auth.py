@@ -3,7 +3,10 @@ Rotas de autenticação para o Gabarita.AI
 """
 from flask import Blueprint, request, jsonify
 from firebase_admin import auth, firestore
-from src.config.firebase_config import firebase_config
+import sys
+import os
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from config.firebase_config import firebase_config
 import uuid
 from datetime import datetime
 
@@ -69,6 +72,7 @@ def login():
         print(f"Erro no login: {e}")
         return jsonify({'erro': 'Erro interno do servidor'}), 500
 
+@auth_bp.route('/signup', methods=['POST'])
 @auth_bp.route('/cadastro', methods=['POST'])
 def cadastro():
     """Endpoint para cadastro de novos usuários"""

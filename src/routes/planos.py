@@ -1,5 +1,8 @@
 from flask import Blueprint, request, jsonify
-from ..services.plano_service import plano_service
+import sys
+import os
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from services.plano_service import plano_service
 from firebase_admin import auth
 from datetime import datetime
 

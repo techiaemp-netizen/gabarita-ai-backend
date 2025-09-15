@@ -1,22 +1,32 @@
 from flask import Flask, jsonify, request
 from flask_cors import CORS
 import os
+import sys
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 from datetime import datetime
-from .services.chatgpt_service import chatgpt_service
-from .routes.questoes import CONTEUDOS_EDITAL
-# from .routes.signup import signup_bp  # Removido para usar rotas diretas
-from .routes.questoes import questoes_bp
-from .routes.planos import planos_bp
-from .routes.jogos import jogos_bp
-from .routes.news import news_bp
-from .routes.opcoes import opcoes_bp
-from .routes.payments import payments_bp
-from .routes.dashboard import dashboard_bp
+from services.chatgpt_service import chatgpt_service
+from routes.questoes import CONTEUDOS_EDITAL
+# from routes.signup import signup_bp  # Removido para usar rotas diretas
+from routes.questoes import questoes_bp
+from routes.planos import planos_bp
+from routes.jogos import jogos_bp
+from routes.auth import auth_bp
+from routes.news import news_bp
+from routes.opcoes import opcoes_bp
+from routes.payments import payments_bp
+from routes.dashboard import dashboard_bp
 
 app = Flask(__name__)
 # Configurar encoding UTF-8
 app.config['JSON_AS_ASCII'] = False
-CORS(app, origins=['http://localhost:3000', 'http://localhost:5173', 'https://j6h5i7c0x703.manus.space'], supports_credentials=True)
+# Configurar CORS com URLs de desenvolvimento e produção
+cors_origins = [
+    'http://localhost:3000',
+    'http://localhost:5173', 
+    'http://localhost:3001',
+    'https://j6h5i7c0x703.manus.space'
+]
+CORS(app, origins=cors_origins, supports_credentials=True)
 
 # Configuração de encoding UTF-8 aplicada via app.config
 
@@ -28,6 +38,7 @@ app.config["MERCADOPAGO_ACCESS_TOKEN"] = os.getenv("MERCADOPAGO_ACCESS_TOKEN", "
 app.register_blueprint(questoes_bp, url_prefix='/api/questoes')
 app.register_blueprint(planos_bp, url_prefix='/api')
 app.register_blueprint(jogos_bp, url_prefix='/api/jogos')
+app.register_blueprint(auth_bp, url_prefix='/api/auth')
 app.register_blueprint(news_bp, url_prefix='/api')
 app.register_blueprint(opcoes_bp, url_prefix='/api')
 app.register_blueprint(payments_bp, url_prefix='/api')
@@ -59,89 +70,7 @@ def health_check():
         'version': '1.0.0'
     })
 
-# Sistema de autenticação simples em memória
-users_memory = {}
-
-@app.route('/api/auth/signup', methods=['POST'])
-def signup_simple():
-    """Cadastro simples de usuário"""
-    try:
-        print(f"Content-Type: {request.content_type}")
-        print(f"Raw data: {request.get_data()}")
-        
-        data = request.get_json(force=True)
-        print(f"Parsed data: {data}")
-        
-        if not data:
-            return jsonify({'sucesso': False, 'erro': 'Dados não fornecidos'}), 400
-        
-        email = data.get('email', '').strip().lower()
-        senha = data.get('senha', '')
-        nome = data.get('nome', data.get('nomeCompleto', ''))
-        cargo = data.get('cargo', 'Enfermeiro')
-        bloco = data.get('bloco', 'Saúde')
-        
-        if not email or not senha or not nome:
-            return jsonify({'sucesso': False, 'erro': 'Email, senha e nome são obrigatórios'}), 400
-        
-        if email in users_memory:
-            return jsonify({'sucesso': False, 'erro': 'Email já cadastrado'}), 409
-        
-        # Salvar usuário
-        users_memory[email] = {
-            'id': f'user_{len(users_memory) + 1}',
-            'nome': nome,
-            'email': email,
-            'senha': senha,  # Em produção, usar hash
-            'cargo': cargo,
-            'bloco': bloco
-        }
-        
-        return jsonify({
-            'sucesso': True,
-            'mensagem': 'Usuário cadastrado com sucesso',
-            'userId': users_memory[email]['id']
-        }), 201
-        
-    except Exception as e:
-        print(f"Erro no cadastro: {e}")
-        return jsonify({'sucesso': False, 'erro': 'Erro interno do servidor'}), 500
-
-@app.route('/api/auth/login', methods=['POST'])
-def login_simple():
-    """Login simples de usuário"""
-    try:
-        data = request.get_json()
-        if not data:
-            return jsonify({'sucesso': False, 'erro': 'Dados não fornecidos'}), 400
-        
-        email = data.get('email', '').strip().lower()
-        senha = data.get('senha', '')
-        
-        if not email or not senha:
-            return jsonify({'sucesso': False, 'erro': 'Email e senha são obrigatórios'}), 400
-        
-        user = users_memory.get(email)
-        if not user:
-            return jsonify({'sucesso': False, 'erro': 'Usuário não encontrado'}), 404
-        
-        if user['senha'] != senha:
-            return jsonify({'sucesso': False, 'erro': 'Senha incorreta'}), 401
-        
-        # Retornar dados do usuário (sem a senha)
-        user_data = user.copy()
-        user_data.pop('senha', None)
-        
-        return jsonify({
-            'sucesso': True,
-            'mensagem': 'Login realizado com sucesso',
-            'usuario': user_data,
-            'token': f'token_{user["id"]}'
-        }), 200
-        
-    except Exception as e:
-        print(f"Erro no login: {e}")
-        return jsonify({'sucesso': False, 'erro': 'Erro interno do servidor'}), 500
+# Rotas de autenticação movidas para src/routes/auth.py
 
 @app.route('/api/questoes/gerar', methods=['POST'])
 def gerar_questao_endpoint():

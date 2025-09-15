@@ -1,5 +1,8 @@
 from flask import Blueprint, jsonify
-from src.routes.questoes import CONTEUDOS_EDITAL
+import sys
+import os
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from routes.questoes import CONTEUDOS_EDITAL
 
 opcoes_bp = Blueprint('opcoes', __name__)
 
