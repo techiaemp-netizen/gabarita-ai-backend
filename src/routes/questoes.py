@@ -960,7 +960,12 @@ def gerar_questao():
     """Gera uma nova questão personalizada para o usuário"""
     try:
         print("🔥 Requisição recebida na API de geração de questões")
-        data = request.get_json()
+        try:
+            data = request.get_json()
+        except UnicodeDecodeError:
+            data = request.get_json(force=True)
+        except Exception as e:
+            return jsonify({"erro": "Dados inválidos na requisição", "detalhes": str(e)}), 400
         print(f"📋 Dados recebidos: {data}")
         
         usuario_id = data.get('usuario_id')

@@ -19,14 +19,38 @@ from routes.dashboard import dashboard_bp
 app = Flask(__name__)
 # Configurar encoding UTF-8
 app.config['JSON_AS_ASCII'] = False
+app.config['JSONIFY_PRETTYPRINT_REGULAR'] = True
+# Configurar charset padrão
+app.config['JSON_SORT_KEYS'] = False
 # Configurar CORS com URLs de desenvolvimento e produção
-cors_origins = [
-    'http://localhost:3000',
-    'http://localhost:5173', 
-    'http://localhost:3001',
-    'https://j6h5i7c0x703.manus.space'
-]
-CORS(app, origins=cors_origins, supports_credentials=True)
+# Usar variável de ambiente se disponível, senão usar lista padrão
+cors_origins_env = os.getenv('CORS_ORIGINS', '')
+if cors_origins_env:
+    cors_origins = [origin.strip() for origin in cors_origins_env.split(',')]
+else:
+    cors_origins = [
+        'http://localhost:3000',
+        'http://localhost:5173', 
+        'http://localhost:3001',
+        'https://j6h5i7c0x703.manus.space',
+        'https://gabarita-ai-frontend-pied.vercel.app',
+        'https://gabarita-ai-frontend.vercel.app'
+    ]
+
+print(f"🌐 CORS Origins configuradas: {cors_origins}")
+CORS(app, origins=cors_origins, supports_credentials=True, 
+     allow_headers=['Content-Type', 'Authorization', 'Accept', 'Origin', 'X-Requested-With'],
+     methods=['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'])
+
+# Middleware para forçar UTF-8
+@app.before_request
+def force_utf8():
+    if request.content_type and 'application/json' in request.content_type:
+        if not hasattr(request, '_cached_data'):
+            try:
+                request._cached_data = request.get_data(as_text=True)
+            except UnicodeDecodeError:
+                request._cached_data = request.get_data().decode('utf-8', errors='replace')
 
 # Configuração de encoding UTF-8 aplicada via app.config
 
@@ -72,85 +96,7 @@ def health_check():
 
 # Rotas de autenticação movidas para src/routes/auth.py
 
-@app.route('/api/questoes/gerar', methods=['POST'])
-def gerar_questao_endpoint():
-    import sys
-    print("🔥 Requisição recebida na API de geração de questões")
-    sys.stdout.flush()
-    data = request.get_json()
-    print(f"📋 Dados recebidos: {data}")
-    sys.stdout.flush()
-    
-    usuario_id = data.get('usuario_id', 'user-default')
-    cargo = data.get('cargo', 'Enfermeiro')
-    bloco = data.get('bloco', 'Saúde')
-    
-    print(f"👤 Usuario ID: {usuario_id}")
-    print(f"💼 Cargo: {cargo}")
-    print(f"📚 Bloco: {bloco}")
-    sys.stdout.flush()
-    
-    # Obter conteúdo específico do edital
-    conteudo_edital = CONTEUDOS_EDITAL.get(cargo, {}).get(bloco, [])
-    print(f"📖 Conteúdo do edital: {conteudo_edital}")
-    sys.stdout.flush()
-    
-    if not conteudo_edital:
-        print("❌ Cargo ou bloco não encontrado")
-        return jsonify({'erro': 'Cargo ou bloco não encontrado'}), 404
-    
-    # Usar a função real de geração de questões
-    try:
-        print("🤖 Gerando questão com ChatGPT...")
-        sys.stdout.flush()
-        conteudo_str = ', '.join(conteudo_edital[:3])  # Usar os primeiros 3 tópicos
-        questao_gerada = chatgpt_service.gerar_questao(cargo, conteudo_str)
-        
-        if questao_gerada:
-            print(f"✅ Questão gerada com sucesso: {questao_gerada.get('questao', 'N/A')[:50]}...")
-            # Converter formato para o frontend
-            questao_frontend = {
-                'id': f'q-{usuario_id}-{datetime.now().strftime("%Y%m%d%H%M%S")}',
-                'enunciado': questao_gerada.get('questao', ''),
-                'alternativas': [{'id': alt['id'], 'texto': alt['texto']} for alt in questao_gerada.get('alternativas', [])],
-                'gabarito': questao_gerada.get('gabarito', 'A'),
-                'explicacao': questao_gerada.get('explicacao', ''),
-                'dificuldade': questao_gerada.get('dificuldade', 'medio'),
-                'tema': questao_gerada.get('tema', conteudo_edital[0] if conteudo_edital else 'Geral')
-            }
-            return jsonify({'questao': questao_frontend})
-        else:
-            print("❌ ChatGPT retornou None")
-            raise Exception("ChatGPT não retornou questão válida")
-            
-    except Exception as e:
-        print(f"❌ Erro ao gerar questão: {e}")
-        sys.stdout.flush()
-        import traceback
-        traceback.print_exc()
-        sys.stdout.flush()
-        # Fallback
-        questao_personalizada = {
-            'id': f'q-{usuario_id}-{datetime.now().strftime("%Y%m%d%H%M%S")}',
-            'enunciado': 'Questão de exemplo sobre SUS',
-            'alternativas': [
-                {'id': 'A', 'texto': 'Alternativa A'},
-                {'id': 'B', 'texto': 'Alternativa B'},
-                {'id': 'C', 'texto': 'Alternativa C'},
-                {'id': 'D', 'texto': 'Alternativa D'},
-                {'id': 'E', 'texto': 'Alternativa E'}
-            ],
-            'gabarito': 'C',
-            'explicacao': 'Explicação da resposta correta',
-            'dificuldade': 'medio',
-            'tema': 'SUS'
-        }
-        
-        print(f"✅ Questão fallback gerada: {questao_personalizada['enunciado'][:50]}...")
-        
-        return jsonify({
-            'questao': questao_personalizada
-        })
+# Rota duplicada removida - a rota correta está em src/routes/questoes.py
 
 @app.route('/api/questoes/<questao_id>/responder', methods=['POST'])
 def responder_questao(questao_id):
@@ -298,55 +244,14 @@ def submit_simulado():
 @app.route('/api/performance', methods=['GET'])
 def get_performance():
     """Retorna dados de performance do usuário"""
-    try:
-        # Dados simulados de performance
-        performance_data = {
-            'total_questoes': 150,
-            'acertos': 120,
-            'erros': 30,
-            'taxa_acerto': 80.0,
-            'tempo_medio': 45.5,
-            'sequencia_atual': 5,
-            'melhor_sequencia': 12,
-            'nivel_atual': 'Intermediário',
-            'pontos_totais': 2450,
-            'progresso_semanal': [
-                {'dia': 'Seg', 'questoes': 15, 'acertos': 12},
-                {'dia': 'Ter', 'questoes': 20, 'acertos': 16},
-                {'dia': 'Qua', 'questoes': 18, 'acertos': 15},
-                {'dia': 'Qui', 'questoes': 22, 'acertos': 18},
-                {'dia': 'Sex', 'questoes': 25, 'acertos': 20}
-            ],
-            'desempenho_por_materia': [
-                {'materia': 'SUS', 'total': 50, 'acertos': 42, 'taxa': 84.0},
-                {'materia': 'Enfermagem', 'total': 60, 'acertos': 45, 'taxa': 75.0},
-                {'materia': 'Saúde Pública', 'total': 40, 'acertos': 33, 'taxa': 82.5}
-            ]
-        }
-        return jsonify(performance_data)
-    except Exception as e:
-        print(f"Erro ao obter performance: {e}")
-        return jsonify({'erro': 'Erro interno do servidor'}), 500
+    # TODO: Implementar lógica de busca de dados reais do Firebase/Firestore.
+    return jsonify({'erro': 'Funcionalidade ainda não implementada'}), 501
 
 @app.route('/api/ranking', methods=['GET'])
 def get_ranking():
     """Retorna o ranking de usuários"""
-    try:
-        ranking_data = {
-            'ranking': [
-                {'posicao': 1, 'nome': 'Usuário***', 'score': 2850, 'acertos': 95.2},
-                {'posicao': 2, 'nome': 'Estudante***', 'score': 2720, 'acertos': 92.8},
-                {'posicao': 3, 'nome': 'Concurseiro***', 'score': 2650, 'acertos': 90.5},
-                {'posicao': 4, 'nome': 'Você', 'score': 2450, 'acertos': 80.0, 'destaque': True},
-                {'posicao': 5, 'nome': 'Candidato***', 'score': 2380, 'acertos': 78.2}
-            ],
-            'sua_posicao': 4,
-            'total_usuarios': 1247
-        }
-        return jsonify(ranking_data)
-    except Exception as e:
-        print(f"Erro ao obter ranking: {e}")
-        return jsonify({'erro': 'Erro interno do servidor'}), 500
+    # TODO: Implementar lógica de busca de dados reais do Firebase/Firestore.
+    return jsonify({'erro': 'Funcionalidade ainda não implementada'}), 501
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))

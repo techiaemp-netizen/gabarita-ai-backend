@@ -16,6 +16,6 @@ services:
         sync: false
     healthCheckPath: /health
     autoDeploy: false
-    branch: gabarita-frontend-deploy
-    repo: https://github.com/techiaemp-netizen/gabarita-ai-frontend.git
+    branch: main
+    repo: https://github.com/techiaemp-netizen/gabarita-ai-backend.git
     rootDir: gabarita-ai-backend

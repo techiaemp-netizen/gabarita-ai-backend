@@ -77,7 +77,12 @@ def login():
 def cadastro():
     """Endpoint para cadastro de novos usuários"""
     try:
-        data = request.get_json()
+        # Tratamento de encoding UTF-8
+        try:
+            data = request.get_json(force=True)
+        except Exception as json_error:
+            print(f"Erro de JSON/Encoding: {json_error}")
+            return jsonify({'erro': 'Dados inválidos ou problema de encoding'}), 400
         
         # Validar dados obrigatórios
         campos_obrigatorios = ['nome', 'email', 'senha', 'cargo', 'bloco']
