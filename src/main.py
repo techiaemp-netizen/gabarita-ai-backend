@@ -32,9 +32,8 @@ else:
         'http://localhost:3000',
         'http://localhost:5173', 
         'http://localhost:3001',
-        'https://j6h5i7c0x703.manus.space',
         'https://gabarita-ai-frontend-pied.vercel.app',
-        'https://gabarita-ai-frontend.vercel.app'
+        'https://gabaritai.app.br'
     ]
 
 print(f"🌐 CORS Origins configuradas: {cors_origins}")
