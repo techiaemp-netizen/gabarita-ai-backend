@@ -69,8 +69,8 @@ def login():
         print(f"Erro no login: {e}")
         return jsonify({'erro': 'Erro interno do servidor'}), 500
 
-@auth_bp.route('/cadastro', methods=['POST'])
-def cadastro():
+@auth_bp.route('/signup', methods=['POST'])
+def signup():
     """Endpoint para cadastro de novos usuários"""
     try:
         data = request.get_json()

@@ -4,8 +4,8 @@ import os
 from datetime import datetime
 from .services.chatgpt_service import chatgpt_service
 from .routes.questoes import CONTEUDOS_EDITAL
-from .routes.signup import signup_bp
-from .routes.questoes import questoes_bp
+from .routes.auth import auth_bp
+from .routes.questoes import questoes_bp  # Manter se houver outras funções
 from .routes.planos import planos_bp
 from .routes.jogos import jogos_bp
 from .routes.news import news_bp
@@ -13,13 +13,13 @@ from .routes.opcoes import opcoes_bp
 from .routes.payments import payments_bp
 
 app = Flask(__name__)
-CORS(app, origins=['http://localhost:3000', 'http://localhost:5173', 'https://j6h5i7c0x703.manus.space'], supports_credentials=True)
+CORS(app, origins=['http://localhost:3000', 'http://localhost:5173', 'https://j6h5i7c0x703.manus.space', 'https://gabaritai.app.br', 'https://www.gabaritai.app.br'], supports_credentials=True)
 
 # Carrega configuração do MercadoPago para a app
 app.config["MERCADOPAGO_ACCESS_TOKEN"] = os.getenv("MERCADOPAGO_ACCESS_TOKEN", "")
 
 # Registrar blueprints
-app.register_blueprint(signup_bp, url_prefix='/api/auth')
+app.register_blueprint(auth_bp, url_prefix='/api/auth')
 app.register_blueprint(questoes_bp, url_prefix='/api/questoes')
 app.register_blueprint(planos_bp, url_prefix='/api')
 app.register_blueprint(jogos_bp, url_prefix='/api/jogos')
@@ -53,113 +53,7 @@ def health_check():
         'version': '1.0.0'
     })
 
-@app.route('/api/auth/login', methods=['POST'])
-def login():
-    data = request.get_json()
-    # Simulação de login simples
-    return jsonify({
-        'success': True,
-        'user': {
-            'id': '1',
-            'nome': data.get('email', 'Usuário'),
-            'email': data.get('email'),
-            'cargo': 'Enfermeiro',
-            'bloco': 'Saúde'
-        },
-        'token': 'demo_token_123'
-    })
-
-@app.route('/api/questoes/gerar', methods=['POST'])
-def gerar_questao_endpoint():
-    import sys
-    print("🔥 Requisição recebida na API de geração de questões")
-    sys.stdout.flush()
-    data = request.get_json()
-    print(f"📋 Dados recebidos: {data}")
-    sys.stdout.flush()
-    
-    usuario_id = data.get('usuario_id', 'user-default')
-    cargo = data.get('cargo', 'Enfermeiro')
-    bloco = data.get('bloco', 'Saúde')
-    
-    print(f"👤 Usuario ID: {usuario_id}")
-    print(f"💼 Cargo: {cargo}")
-    print(f"📚 Bloco: {bloco}")
-    sys.stdout.flush()
-    
-    # Obter conteúdo específico do edital
-    conteudo_edital = CONTEUDOS_EDITAL.get(cargo, {}).get(bloco, [])
-    print(f"📖 Conteúdo do edital: {conteudo_edital}")
-    sys.stdout.flush()
-    
-    if not conteudo_edital:
-        print("❌ Cargo ou bloco não encontrado")
-        return jsonify({'erro': 'Cargo ou bloco não encontrado'}), 404
-    
-    # Usar a função real de geração de questões
-    try:
-        print("🤖 Gerando questão com ChatGPT...")
-        sys.stdout.flush()
-        conteudo_str = ', '.join(conteudo_edital[:3])  # Usar os primeiros 3 tópicos
-        questao_gerada = chatgpt_service.gerar_questao(cargo, conteudo_str)
-        
-        if questao_gerada:
-            print(f"✅ Questão gerada com sucesso: {questao_gerada.get('questao', 'N/A')[:50]}...")
-            # Converter formato para o frontend
-            questao_frontend = {
-                'id': f'q-{usuario_id}-{datetime.now().strftime("%Y%m%d%H%M%S")}',
-                'enunciado': questao_gerada.get('questao', ''),
-                'alternativas': [{'id': alt['id'], 'texto': alt['texto']} for alt in questao_gerada.get('alternativas', [])],
-                'gabarito': questao_gerada.get('gabarito', 'A'),
-                'explicacao': questao_gerada.get('explicacao', ''),
-                'dificuldade': questao_gerada.get('dificuldade', 'medio'),
-                'tema': questao_gerada.get('tema', conteudo_edital[0] if conteudo_edital else 'Geral')
-            }
-            return jsonify({'questao': questao_frontend})
-        else:
-            print("❌ ChatGPT retornou None")
-            raise Exception("ChatGPT não retornou questão válida")
-            
-    except Exception as e:
-        print(f"❌ Erro ao gerar questão: {e}")
-        sys.stdout.flush()
-        import traceback
-        traceback.print_exc()
-        sys.stdout.flush()
-        # Fallback
-        questao_personalizada = {
-            'id': f'q-{usuario_id}-{datetime.now().strftime("%Y%m%d%H%M%S")}',
-            'enunciado': 'Questão de exemplo sobre SUS',
-            'alternativas': [
-                {'id': 'A', 'texto': 'Alternativa A'},
-                {'id': 'B', 'texto': 'Alternativa B'},
-                {'id': 'C', 'texto': 'Alternativa C'},
-                {'id': 'D', 'texto': 'Alternativa D'},
-                {'id': 'E', 'texto': 'Alternativa E'}
-            ],
-            'gabarito': 'C',
-            'explicacao': 'Explicação da resposta correta',
-            'dificuldade': 'medio',
-            'tema': 'SUS'
-        }
-        
-        print(f"✅ Questão fallback gerada: {questao_personalizada['enunciado'][:50]}...")
-        
-        return jsonify({
-            'questao': questao_personalizada
-        })
-
-@app.route('/api/questoes/<questao_id>/responder', methods=['POST'])
-def responder_questao(questao_id):
-    data = request.get_json()
-    resposta = data.get('resposta')
-    
-    return jsonify({
-        'success': True,
-        'correto': resposta == 'C',
-        'gabarito': 'C',
-        'explicacao': 'Explicação detalhada da resposta'
-    })
+# Remover stubs que conflitam com os blueprints reais
 
 @app.route('/api/perplexity/explicacao', methods=['POST'])
 def obter_explicacao_perplexity():
