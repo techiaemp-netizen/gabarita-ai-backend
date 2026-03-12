@@ -95,6 +95,51 @@ def create_payment_preference():
             "error": "Erro interno do servidor"
         }), 500
 
+@payments_bp.route("/payments/verify", methods=["POST"])
+def verify_payment():
+    """Endpoint para verificar o pagamento manualmente via frontend após o sucesso"""
+    try:
+        data = request.get_json()
+        payment_id = data.get('payment_id')
+        user_id_request = data.get('user_id')
+        
+        if not payment_id:
+            return jsonify({"success": False, "error": "payment_id é obrigatório"}), 400
+            
+        sdk = get_mp_sdk()
+        payment_info = sdk.payment().get(payment_id)
+        payment_data = payment_info["response"]
+        
+        status = payment_data.get('status')
+        external_reference = payment_data.get('external_reference')
+        
+        # Priorizar user_id enviado pelo front se o external_reference parecer truncado
+        # (O MP trunca após 256 caracteres, o que acontece com tokens JWT longos)
+        user_id = user_id_request if user_id_request else external_reference
+        
+        if status == 'approved' and user_id:
+            from .planos import ativar_plano_usuario
+            # Determinar tipo de plano (pode vir no metadata ou external_ref se não for apenas o ID)
+            # Como padrão para verificação manual, assumimos premium se o pagamento foi aprovado
+            ativar_plano_usuario(user_id, 'premium')
+            
+            return jsonify({
+                "success": True,
+                "status": status,
+                "user_id": user_id,
+                "message": "Plano ativado com sucesso"
+            })
+        
+        return jsonify({
+            "success": False,
+            "status": status,
+            "message": "Pagamento não aprovado ou usuário não identificado"
+        }), 400
+        
+    except Exception as e:
+        current_app.logger.error(f"Erro ao verificar pagamento: {e}")
+        return jsonify({"success": False, "error": str(e)}), 500
+
 @payments_bp.route("/payments/webhook", methods=["POST"])
 def payment_webhook():
     """Webhook para receber notificações do MercadoPago"""

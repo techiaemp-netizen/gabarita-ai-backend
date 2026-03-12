@@ -51,7 +51,7 @@ Conteúdo do edital a ser cobrado: {conteudo_edital}
 Tipo de questão desejada: {tipo_questao}
 """
     
-    def gerar_questao(self, cargo: str, conteudo_edital: str, tipo_questao: str = "múltipla escolha") -> Optional[Dict[str, Any]]:
+    def gerar_questao(self, cargo: str, conteudo_edital: str, tipo_questao: str = "múltipla escolha", historico_perguntas: str = "") -> Optional[Dict[str, Any]]:
         """
         Gera uma questão personalizada usando ChatGPT
         
@@ -59,6 +59,7 @@ Tipo de questão desejada: {tipo_questao}
             cargo: Cargo pretendido pelo usuário
             conteudo_edital: Conteúdo específico do edital
             tipo_questao: Tipo de questão desejada
+            historico_perguntas: Texto com questões anteriores para evitar repetição
             
         Returns:
             Dict com a questão gerada ou None em caso de erro
@@ -67,11 +68,15 @@ Tipo de questão desejada: {tipo_questao}
             # Combinar prompts estático e dinâmico
             prompt_completo = self._get_prompt_estatico() + self._get_prompt_dinamico(cargo, conteudo_edital, tipo_questao)
             
+            # Adicionar histórico se disponível
+            if historico_perguntas:
+                prompt_completo += f"\n\nIMPORTANTE - EVITAR REPETIÇÃO:\nO aluno já respondeu estas questões:\n{historico_perguntas}\n\nGere uma questão sobre um TEMA DIFERENTE ou ASPECTO NÃO ABORDADO acima dentro de {conteudo_edital}."
+            
             # Fazer chamada para ChatGPT
             response = self.client.chat.completions.create(
-                model="gpt-4o-mini",  # Modelo disponível
+                model="gpt-4",
                 messages=[
-                    {"role": "system", "content": "Você é um especialista em elaboração de questões para concursos públicos da banca FGV."},
+                    {"role": "system", "content": "Você é um especialista em elaboração de questões para concursos públicos."},
                     {"role": "user", "content": prompt_completo}
                 ],
                 temperature=self.temperature,

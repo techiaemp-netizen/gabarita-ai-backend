@@ -969,16 +969,40 @@ def gerar_questao():
             print("❌ Cargo ou bloco não encontrado")
             return jsonify({'erro': 'Cargo ou bloco não encontrado'}), 404
         
+        historico_perguntas_str = ""
+        # Fase 1: Buscar histórico para não repetir
+        if firebase_config.is_configured():
+            try:
+                from firebase_admin import firestore
+                db = firestore.client()
+                
+                # 1. Buscar histórico do usuário
+                historico_ref = db.collection('historico_respostas').where('usuario_id', '==', usuario_id).limit(20).get()
+                recent_ids = [doc.to_dict().get('questao_id') for doc in historico_ref if doc.to_dict().get('questao_id')]
+                
+                # Pegar as 7 mais recentes e extrair o texto para o GPT não repetir
+                textos_recentes = []
+                for qid in recent_ids[:7]:
+                    try:
+                        q_doc = db.collection('questoes_geradas').document(qid).get()
+                        if q_doc.exists:
+                            q_texto = q_doc.to_dict().get('questao', '')
+                            if q_texto:
+                                textos_recentes.append(q_texto[:150] + '...')
+                    except: pass
+                
+                historico_perguntas_str = "\n".join([f"- {t}" for t in textos_recentes])
+            except Exception as e:
+                print(f"Erro ao buscar histórico: {e}")
+
         # Gerar questão real usando ChatGPT
         print("🤖 Gerando questão com ChatGPT...")
-        print(f"DEBUG: Parâmetros - cargo={cargo}, bloco={bloco}, tipo={tipo_questao}")
-        print(f"DEBUG: Conteúdo edital: {conteudo_edital}")
         try:
-            print("DEBUG: Chamando chatgpt_service.gerar_questao...")
             questao_ia = chatgpt_service.gerar_questao(
                 cargo=cargo,
                 conteudo_edital=conteudo_edital,
-                tipo_questao=tipo_questao
+                tipo_questao=tipo_questao,
+                historico_perguntas=historico_perguntas_str
             )
             
             print(f"DEBUG: Resposta do ChatGPT: {questao_ia}")

@@ -264,6 +264,20 @@ def processar_pagamento():
         user_id = token
         
         data = request.get_json()
+        usuario_id_body = data.get('usuario_id')
+        
+        if usuario_id_body:
+            user_id = usuario_id_body
+        else:
+            # Tentar extrair o UID real do token Firebase
+            try:
+                from firebase_admin import auth as firebase_auth
+                decoded_token = firebase_auth.verify_id_token(token)
+                user_id = decoded_token['uid']
+            except Exception as e:
+                # Em desenvolvimento ou se o token for o próprio UID, mantém como está
+                user_id = token
+        
         tipo_plano = data.get('tipo_plano')
         metodo_pagamento = data.get('metodo_pagamento', 'mercado_pago')
         dados_pagamento = data.get('dados_pagamento', {})

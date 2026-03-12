@@ -503,7 +503,9 @@ def gerar_palavra_forca(bloco, dificuldade='medio'):
         prompt = ajustar_prompt_por_dificuldade(prompt, dificuldade)
         
         response = chatgpt_service.generate_response(prompt)
-        content = json.loads(response)
+        content = chatgpt_service._extrair_json_resposta(response)
+        if not content:
+            raise ValueError("Falha ao extrair JSON da resposta do GPT")
         
         # Adiciona informação de dificuldade
         content['dificuldade'] = dificuldade
@@ -543,7 +545,9 @@ def gerar_questoes_quiz(bloco, quantidade, dificuldade='medio'):
         prompt = ajustar_prompt_por_dificuldade(prompt, dificuldade)
         
         response = chatgpt_service.generate_response(prompt)
-        data = json.loads(response)
+        data = chatgpt_service._extrair_json_resposta(response)
+        if not data:
+            raise ValueError("Falha ao extrair JSON da resposta do GPT")
         
         # Adiciona informação de dificuldade às questões
         questoes = data.get('questoes', [])
@@ -618,7 +622,9 @@ def gerar_pares_memoria(bloco, quantidade, dificuldade='medio'):
         prompt = ajustar_prompt_por_dificuldade(prompt, dificuldade)
         
         response = chatgpt_service.generate_response(prompt)
-        data = json.loads(response)
+        data = chatgpt_service._extrair_json_resposta(response)
+        if not data:
+            raise ValueError("Falha ao extrair JSON da resposta do GPT")
         
         # Adiciona informação de dificuldade aos pares
         pares = data.get('pares', [])
@@ -672,7 +678,9 @@ def gerar_palavras_cruzadas(bloco, quantidade, dificuldade='medio'):
         prompt = ajustar_prompt_por_dificuldade(prompt, dificuldade)
         
         response = chatgpt_service.generate_response(prompt)
-        data = json.loads(response)
+        data = chatgpt_service._extrair_json_resposta(response)
+        if not data:
+            raise ValueError("Falha ao extrair JSON da resposta do GPT")
         
         # Adiciona informação de dificuldade às palavras
         palavras = data.get('palavras', [])
